@@ -17,7 +17,7 @@ class HomeViewController: UIViewController {
 
         // write user's email address to console log
         let userpoolController = CognitoUserPoolController.sharedInstance
-        userpoolController.getUserDetails(user: userpoolController.userPool!.currentUser()!) { (error: Error?, details:AWSCognitoIdentityUserGetDetailsResponse?) in
+        userpoolController.getUserDetails(user: userpoolController.currentUser!) { (error: Error?, details:AWSCognitoIdentityUserGetDetailsResponse?) in
             
             if let userAttributes = details?.userAttributes {
                 for attribute in userAttributes {

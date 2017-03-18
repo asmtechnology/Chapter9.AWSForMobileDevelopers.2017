@@ -59,7 +59,6 @@ class SignupViewController: UIViewController {
             if user.confirmedStatus != AWSCognitoIdentityUserStatus.confirmed {
                 self.requestConfirmationCode(user)
             } else {
-                userpoolController.currentUser = user
                 self.displaySuccessMessage()
             }
         }
@@ -162,8 +161,7 @@ extension SignupViewController {
                         })
                         return
                     }
-                    
-                    userpoolController.currentUser = user
+
                     self.displaySuccessMessage()
                 }
             }

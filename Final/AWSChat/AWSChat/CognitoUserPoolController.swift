@@ -19,8 +19,13 @@ class CognitoUserPoolController {
     let userPoolD = "us-east-1_qEyg0l636"
     let signInProviderKey = "AWSChat"
     
-    var currentUser:AWSCognitoIdentityUser?
-    var userPool:AWSCognitoIdentityUserPool?
+    var currentUser:AWSCognitoIdentityUser? {
+        get {
+            return userPool?.currentUser()
+        }
+    }
+    
+    private var userPool:AWSCognitoIdentityUserPool?
     
     static let sharedInstance: CognitoUserPoolController = CognitoUserPoolController()
     
@@ -119,6 +124,7 @@ class CognitoUserPoolController {
     }
     
     func getUserDetails(user: AWSCognitoIdentityUser, completion:@escaping (Error?, AWSCognitoIdentityUserGetDetailsResponse?)->Void) {
+        
         let task = user.getDetails()
         task.continueWith(block: { (task: AWSTask<AWSCognitoIdentityUserGetDetailsResponse>) -> Any? in
             if let error = task.error {
