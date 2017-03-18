@@ -18,17 +18,12 @@ class LoginViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
+        self.loginButton.isEnabled = false
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
-    }
-    
-    @IBAction func onSignup(_ sender: Any) {
-        
     }
     
     @IBAction func onLogin(_ sender: Any) {
@@ -58,6 +53,22 @@ class LoginViewController: UIViewController {
 
 extension LoginViewController : UITextFieldDelegate {
     
+    func textField(_ textField: UITextField,
+                   shouldChangeCharactersIn range: NSRange,
+                   replacementString string: String) -> Bool {
+        
+        if let username = self.usernameField.text,
+            let password = self.passwordField.text {
+            
+            if ((username.characters.count > 0) &&
+                (password.characters.count > 0)) {
+                self.loginButton.isEnabled = true
+            }
+        }
+        
+        return true
+    }
+
 }
 
 

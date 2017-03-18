@@ -21,6 +21,7 @@
 		9122B0511E6F43130024AE10 /* AWSCognitoIdentityProvider.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9122B04C1E6F43130024AE10 /* AWSCognitoIdentityProvider.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		9122B0521E6F43130024AE10 /* AWSCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9122B04D1E6F43130024AE10 /* AWSCore.framework */; };
 		9122B0531E6F43130024AE10 /* AWSCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9122B04D1E6F43130024AE10 /* AWSCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		9122B0761E7842510024AE10 /* CognitoUserPoolController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9122B0751E7842510024AE10 /* CognitoUserPoolController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -53,6 +54,7 @@
 		9122B04B1E6F43130024AE10 /* AWSCognito.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSCognito.framework; path = Carthage/Build/iOS/AWSCognito.framework; sourceTree = "<group>"; };
 		9122B04C1E6F43130024AE10 /* AWSCognitoIdentityProvider.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSCognitoIdentityProvider.framework; path = Carthage/Build/iOS/AWSCognitoIdentityProvider.framework; sourceTree = "<group>"; };
 		9122B04D1E6F43130024AE10 /* AWSCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSCore.framework; path = Carthage/Build/iOS/AWSCore.framework; sourceTree = "<group>"; };
+		9122B0751E7842510024AE10 /* CognitoUserPoolController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CognitoUserPoolController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +93,7 @@
 		9122B02E1E6E98070024AE10 /* AWSChat */ = {
 			isa = PBXGroup;
 			children = (
+				9122B0741E7842170024AE10 /* Controller */,
 				9122B04A1E6E98D30024AE10 /* ViewControllers */,
 				9122B0491E6E98C20024AE10 /* Storyboards */,
 				9122B02F1E6E98070024AE10 /* AppDelegate.swift */,
@@ -118,6 +121,14 @@
 				9122B0451E6E986C0024AE10 /* HomeViewController.swift */,
 			);
 			name = ViewControllers;
+			sourceTree = "<group>";
+		};
+		9122B0741E7842170024AE10 /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				9122B0751E7842510024AE10 /* CognitoUserPoolController.swift */,
+			);
+			name = Controller;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -214,6 +225,7 @@
 				9122B0441E6E98470024AE10 /* SignupViewController.swift in Sources */,
 				9122B0421E6E98300024AE10 /* LoginViewController.swift in Sources */,
 				9122B0301E6E98070024AE10 /* AppDelegate.swift in Sources */,
+				9122B0761E7842510024AE10 /* CognitoUserPoolController.swift in Sources */,
 				9122B0461E6E986C0024AE10 /* HomeViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

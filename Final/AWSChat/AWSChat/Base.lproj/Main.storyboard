@@ -88,7 +88,6 @@
                                 </constraints>
                                 <state key="normal" title="Sign up"/>
                                 <connections>
-                                    <action selector="onSignup:" destination="BYZ-38-t0r" eventType="touchUpInside" id="fzw-Eq-PKU"/>
                                     <segue destination="aiI-xb-Kdo" kind="show" id="WLd-0b-taM"/>
                                 </connections>
                             </button>
