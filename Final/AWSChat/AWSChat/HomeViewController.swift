@@ -7,13 +7,27 @@
 //
 
 import UIKit
+import AWSCognitoIdentityProvider
 
 class HomeViewController: UIViewController {
 
     override func viewDidLoad() {
+        
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
+        // write user's email address to console log
+        let userpoolController = CognitoUserPoolController.sharedInstance
+        userpoolController.getUserDetails(user: userpoolController.userPool!.currentUser()!) { (error: Error?, details:AWSCognitoIdentityUserGetDetailsResponse?) in
+            
+            if let userAttributes = details?.userAttributes {
+                for attribute in userAttributes {
+                    if attribute.name?.compare("email") == .orderedSame {
+                        print ("Email address of logged-in user is \(attribute.value!)")
+                    }
+                }
+            }
+        }
+        
     }
 
     override func didReceiveMemoryWarning() {

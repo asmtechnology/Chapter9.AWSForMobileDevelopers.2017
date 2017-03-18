@@ -20,7 +20,7 @@ class CognitoUserPoolController {
     let signInProviderKey = "AWSChat"
     
     var currentUser:AWSCognitoIdentityUser?
-    private var userPool:AWSCognitoIdentityUserPool?
+    var userPool:AWSCognitoIdentityUserPool?
     
     static let sharedInstance: CognitoUserPoolController = CognitoUserPoolController()
     
@@ -116,5 +116,26 @@ class CognitoUserPoolController {
             return nil
         }
         
+    }
+    
+    func getUserDetails(user: AWSCognitoIdentityUser, completion:@escaping (Error?, AWSCognitoIdentityUserGetDetailsResponse?)->Void) {
+        let task = user.getDetails()
+        task.continueWith(block: { (task: AWSTask<AWSCognitoIdentityUserGetDetailsResponse>) -> Any? in
+            if let error = task.error {
+                completion(error, nil)
+                return nil
+            }
+            
+            guard let result = task.result else {
+                let error = NSError(domain: "com.asmtechnology.awschat",
+                                    code: self.CognitoUserPoolControllerUnknownError,
+                                    userInfo: ["__type":"Unknown Error", "message":"Cognito user pool error."])
+                completion(error, nil)
+                return nil
+            }
+            
+            completion(nil, result)
+            return nil
+        })
     }
 }
