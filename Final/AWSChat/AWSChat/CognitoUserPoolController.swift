@@ -41,6 +41,26 @@ class CognitoUserPoolController {
         userPool = AWSCognitoIdentityUserPool(forKey: signInProviderKey)
     }
     
+    
+    
+    func login(username: String, password:String, completion:@escaping (Error?)->Void) {
+    
+        let user = self.userPool?.getUser(username)
+        let task = user?.getSession(username, password: password, validationData:nil)
+        
+        task?.continueWith(block: { (task: AWSTask<AWSCognitoIdentityUserSession>) -> Any? in
+            if let error = task.error {
+                completion(error)
+                return nil
+            }
+            
+            completion(nil)
+            return nil
+            
+        })
+    }
+    
+    
     func signup(username: String, password:String, attributes:[AWSCognitoIdentityUserAttributeType], completion:@escaping (Error?, AWSCognitoIdentityUser?)->Void) {
         
         let task = self.userPool?.signUp(username, password: password, userAttributes: attributes, validationData: nil)
