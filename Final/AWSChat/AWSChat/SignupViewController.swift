@@ -34,12 +34,9 @@ class SignupViewController: UIViewController {
                 return
         }
         
-        var attributes = [AWSCognitoIdentityUserAttributeType]()
-        let emailAttribute = AWSCognitoIdentityUserAttributeType(name: "email", value: emailAddress)
-        attributes.append(emailAttribute)
-        
+
         let userpoolController = CognitoUserPoolController.sharedInstance
-        userpoolController.signup(username: username, password: password, attributes: attributes) { (error: Error?, user: AWSCognitoIdentityUser?) in
+        userpoolController.signup(username: username, password: password, emailAddress: emailAddress) { (error: Error?, user: AWSCognitoIdentityUser?) in
             
             if let error = error {
                 self.displaySignupError(error: error as NSError, completion:nil)
@@ -75,18 +72,6 @@ class SignupViewController: UIViewController {
     @IBAction func emailDidEndOnExit(_ sender: Any) {
         dismissKeyboard()
     }
-    
-    
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
 }
 
 

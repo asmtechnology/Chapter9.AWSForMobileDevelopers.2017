@@ -11,13 +11,14 @@ import AWSCognitoIdentityProvider
 
 class CognitoUserPoolController {
     
-    let CognitoUserPoolControllerUnknownError = 100
-    
     let userPoolRegion: AWSRegionType = .USEast1
+    let userPoolD = "us-east-1_qEyg0l636"
+    
     let appClientID = "5o6ge7468o0iuaso9ego20e2s5"
     let appClientSecret = "ou0po8kqd8v9pjsthprac2r5msuq2b5otoi2dbbk1cjcl4nspl1"
-    let userPoolD = "us-east-1_qEyg0l636"
-    let signInProviderKey = "AWSChat"
+    
+    
+    private var userPool:AWSCognitoIdentityUserPool?
     
     var currentUser:AWSCognitoIdentityUser? {
         get {
@@ -25,13 +26,9 @@ class CognitoUserPoolController {
         }
     }
     
-    private var userPool:AWSCognitoIdentityUserPool?
-    
     static let sharedInstance: CognitoUserPoolController = CognitoUserPoolController()
     
-    
     private init() {
-        AWSLogger.default().logLevel = .verbose
         
         let serviceConfiguration = AWSServiceConfiguration(region: userPoolRegion, credentialsProvider: nil)
         
@@ -41,9 +38,11 @@ class CognitoUserPoolController {
         
         AWSCognitoIdentityUserPool.register(with: serviceConfiguration,
                                             userPoolConfiguration: poolConfiguration,
-                                            forKey:signInProviderKey)
+                                            forKey:"AWSChat")
         
-        userPool = AWSCognitoIdentityUserPool(forKey: signInProviderKey)
+        userPool = AWSCognitoIdentityUserPool(forKey: "AWSChat")
+        
+        AWSLogger.default().logLevel = .verbose
     }
     
     
@@ -66,7 +65,11 @@ class CognitoUserPoolController {
     }
     
     
-    func signup(username: String, password:String, attributes:[AWSCognitoIdentityUserAttributeType], completion:@escaping (Error?, AWSCognitoIdentityUser?)->Void) {
+    func signup(username: String, password:String, emailAddress:String, completion:@escaping (Error?, AWSCognitoIdentityUser?)->Void) {
+        
+        var attributes = [AWSCognitoIdentityUserAttributeType]()
+        let emailAttribute = AWSCognitoIdentityUserAttributeType(name: "email", value: emailAddress)
+        attributes.append(emailAttribute)
         
         let task = self.userPool?.signUp(username, password: password, userAttributes: attributes, validationData: nil)
         
@@ -78,7 +81,7 @@ class CognitoUserPoolController {
             
             guard let result = task.result else {
                 let error = NSError(domain: "com.asmtechnology.awschat",
-                                    code: self.CognitoUserPoolControllerUnknownError,
+                                    code: 100,
                                     userInfo: ["__type":"Unknown Error", "message":"Cognito user pool error."])
                 completion(error, nil)
                 return nil
@@ -134,7 +137,7 @@ class CognitoUserPoolController {
             
             guard let result = task.result else {
                 let error = NSError(domain: "com.asmtechnology.awschat",
-                                    code: self.CognitoUserPoolControllerUnknownError,
+                                    code: 100,
                                     userInfo: ["__type":"Unknown Error", "message":"Cognito user pool error."])
                 completion(error, nil)
                 return nil
