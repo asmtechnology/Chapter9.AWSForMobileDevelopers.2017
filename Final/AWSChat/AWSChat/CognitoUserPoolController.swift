@@ -12,7 +12,7 @@ import AWSCognitoIdentityProvider
 class CognitoUserPoolController {
     
     let userPoolRegion: AWSRegionType = .USEast1
-    let userPoolD = "us-east-1_qEyg0l636"
+    let userPoolID = "us-east-1_qEyg0l636"
     
     let appClientID = "5o6ge7468o0iuaso9ego20e2s5"
     let appClientSecret = "ou0po8kqd8v9pjsthprac2r5msuq2b5otoi2dbbk1cjcl4nspl1"
@@ -34,7 +34,7 @@ class CognitoUserPoolController {
         
         let poolConfiguration = AWSCognitoIdentityUserPoolConfiguration(clientId: appClientID,
                                                                         clientSecret: appClientSecret,
-                                                                        poolId: userPoolD)
+                                                                        poolId: userPoolID)
         
         AWSCognitoIdentityUserPool.register(with: serviceConfiguration,
                                             userPoolConfiguration: poolConfiguration,
