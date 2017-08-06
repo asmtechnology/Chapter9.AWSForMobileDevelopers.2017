@@ -11,9 +11,12 @@ import AWSCognitoIdentityProvider
 
 class CognitoUserPoolController {
     
+    //TO DO: Insert your Cognito user pool settings here
     let userPoolRegion: AWSRegionType = .USEast1
     let userPoolID = "your user pool id"
     
+    //TO DO: Insert the client id and client secret for the App you created
+    // within the Cognito user pool.
     let appClientID = "your app client id"
     let appClientSecret = "your app client secret"
     
