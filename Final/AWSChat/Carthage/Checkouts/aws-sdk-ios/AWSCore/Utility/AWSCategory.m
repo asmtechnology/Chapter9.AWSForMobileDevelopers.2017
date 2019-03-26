@@ -12,12 +12,11 @@
 // express or implied. See the License for the specific language governing
 // permissions and limitations under the License.
 //
-
 #import "AWSCategory.h"
 #import <objc/runtime.h>
 #import <CommonCrypto/CommonCryptor.h>
 #import <CommonCrypto/CommonDigest.h>
-#import "AWSLogging.h"
+#import "AWSCocoaLumberjack.h"
 #import "AWSGZIP.h"
 #import "AWSMantle.h"
 
@@ -490,6 +489,11 @@ static NSTimeInterval _clockskew = 0.0;
         || [self isEqualToString:@"us-east-1"]) {
         return AWSRegionUSEast1;
     }
+    if ([self isEqualToString:@"AWSRegionUSEast2"]
+        || [self isEqualToString:@"USEast2"]
+        || [self isEqualToString:@"us-east-2"]) {
+        return AWSRegionUSEast2;
+    }
     if ([self isEqualToString:@"AWSRegionUSWest1"]
         || [self isEqualToString:@"USWest1"]
         || [self isEqualToString:@"us-west-1"]) {
@@ -504,6 +508,11 @@ static NSTimeInterval _clockskew = 0.0;
         || [self isEqualToString:@"EUWest1"]
         || [self isEqualToString:@"eu-west-1"]) {
         return AWSRegionEUWest1;
+    }
+    if ([self isEqualToString:@"AWSRegionEUWest2"]
+        || [self isEqualToString:@"EUWest2"]
+        || [self isEqualToString:@"eu-west-2"]) {
+        return AWSRegionEUWest2;
     }
     if ([self isEqualToString:@"AWSRegionEUCentral1"]
         || [self isEqualToString:@"EUCentral1"]
@@ -540,7 +549,11 @@ static NSTimeInterval _clockskew = 0.0;
         || [self isEqualToString:@"sa-east-1"]) {
         return AWSRegionSAEast1;
     }
-
+    if ([self isEqualToString:@"AWSRegionCACentral1"]
+        || [self isEqualToString:@"CACentral1"]
+        || [self isEqualToString:@"ca-central-1"]) {
+        return AWSRegionCACentral1;
+    }
     if ([self isEqualToString:@"AWSRegionUSGovWest1"]
         || [self isEqualToString:@"USGovWest1"]
         || [self isEqualToString:@"us-gov-west-1"]) {
@@ -551,6 +564,30 @@ static NSTimeInterval _clockskew = 0.0;
         || [self isEqualToString:@"CNNorth1"]
         || [self isEqualToString:@"cn-north-1"]) {
         return AWSRegionCNNorth1;
+    }
+    
+    if ([self isEqualToString:@"AWSRegionCNNorthWest1"]
+        || [self isEqualToString:@"CNNorthWest1"]
+        || [self isEqualToString:@"cn-northwest-1"]) {
+        return AWSRegionCNNorthWest1;
+    }
+    
+    if ([self isEqualToString:@"AWSRegionEUWest3"]
+        || [self isEqualToString:@"EUWest3"]
+        || [self isEqualToString:@"eu-west-3"]) {
+        return AWSRegionEUWest3;
+    }
+    
+    if ([self isEqualToString:@"AWSRegionUSGovEast1"]
+        || [self isEqualToString:@"USGovEast1"]
+        || [self isEqualToString:@"us-gov-east-1"]) {
+        return AWSRegionUSGovEast1;
+    }
+    
+    if ([self isEqualToString:@"AWSRegionEUNorth1"]
+        || [self isEqualToString:@"EUNorth1"]
+        || [self isEqualToString:@"eu-north-1"]) {
+        return AWSRegionEUNorth1;
     }
 
     return AWSRegionUnknown;
@@ -590,7 +627,7 @@ static NSTimeInterval _clockskew = 0.0;
                                 options:NSFileManagerItemReplacementUsingNewMetadataOnly
                        resultingItemURL:nil
                                   error:outError];
-        if ( NO == result ) {
+        if (NO == result) {
             if (backupItemName) {
                 NSURL *backupItemURL = [[destinationURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:backupItemName];
                 NSError *error = nil;
@@ -601,12 +638,12 @@ static NSTimeInterval _clockskew = 0.0;
                                      resultingItemURL:nil error:&error];
                 if (NO == success) {
                     if (error) {
-                        AWSLogError(@"Failed to move backupItemURL directory(%@) to destinationURL(%@): %@" ,backupItemURL,destinationURL,error);
+                        AWSDDLogError(@"Failed to move backupItemURL directory(%@) to destinationURL(%@): %@" ,backupItemURL,destinationURL,error);
                     }
                     if ([self fileExistsAtPath:[destinationURL path]]) {
                         NSError *removeError = nil;
                         if (NO == [self removeItemAtURL:destinationURL error:&removeError]) {
-                            AWSLogError(@"Failed to remove destinationURL(%@): %@",destinationURL,removeError);
+                            AWSDDLogError(@"Failed to remove destinationURL(%@): %@",destinationURL,removeError);
                         }
                     }
                     
@@ -618,7 +655,7 @@ static NSTimeInterval _clockskew = 0.0;
     NSError *error;
     if (![self removeItemAtURL:tempDir error:&error])
     {
-        AWSLogError(@"Failed to remove temp(%@) directory after atomic copy: %@",tempDir,error);
+        AWSDDLogError(@"Failed to remove temp(%@) directory after atomic copy: %@",tempDir,error);
     }
     
     return result;

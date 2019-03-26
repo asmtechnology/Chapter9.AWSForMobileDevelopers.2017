@@ -38,12 +38,31 @@ NSString *const AWSTestUtilityCognitoIdentityServiceKey = @"test-cib";
 
 @end
 
+@interface AWSDDLogCustomFormatter : NSObject<AWSDDLogFormatter>
+
+@end
+
+@implementation AWSDDLogCustomFormatter
+
+- (NSString *)formatLogMessage:(AWSDDLogMessage *)logMessage {
+    NSString *logLevel;
+    switch (logMessage->_flag) {
+        case AWSDDLogFlagError    : logLevel = @"E"; break;
+        case AWSDDLogFlagWarning  : logLevel = @"W"; break;
+        case AWSDDLogFlagInfo     : logLevel = @"I"; break;
+        case AWSDDLogFlagDebug    : logLevel = @"D"; break;
+        default                   : logLevel = @"V"; break;
+    }
+    
+    return [NSString stringWithFormat:@"%@ | %@", logLevel, logMessage->_message];
+}
+
+@end
+
 @implementation AWSTestUtility
 
 + (void)initialize {
     [super initialize];
-
-    [AWSLogger defaultLogger].logLevel = AWSLogLevelError;
 }
 
 + (void)setupCrdentialsViaFile {
@@ -140,6 +159,28 @@ NSString *const AWSTestUtilityCognitoIdentityServiceKey = @"test-cib";
     }
 }
 
++ (NSString *) getIoTEndPoint:(NSString *) endpointName {
+    NSString *filePath = [[NSBundle bundleForClass:[self class]] pathForResource:@"credentials"
+                                                                          ofType:@"json"];
+    NSDictionary<NSString *, NSString*> *credentialsJson = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:filePath]
+                                                                    options:NSJSONReadingMutableContainers
+                                                                      error:nil];
+    if ([credentialsJson objectForKey:endpointName]) {
+        return [credentialsJson valueForKey:endpointName];
+    } else {
+        return nil;
+    }
+}
+    
++ (NSDictionary<NSString *, NSString *> *) getCredentialsJsonAsDictionary {
+    NSString *filePath = [[NSBundle bundleForClass:[self class]] pathForResource:@"credentials"
+                                                                          ofType:@"json"];
+    NSDictionary<NSString *, NSString*> *credentialsJson = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:filePath]
+                                                                                           options:NSJSONReadingMutableContainers
+                                                                                             error:nil];
+    return credentialsJson;
+}
+
 + (void)setupCognitoIdentityService {
     if (![AWSCognitoIdentity CognitoIdentityForKey:AWSTestUtilityCognitoIdentityServiceKey]) {
         NSString *filePath = [[NSBundle bundleForClass:[self class]] pathForResource:@"credentials"
@@ -209,7 +250,7 @@ static char mockDateKey;
     return objc_getAssociatedObject([NSDate class], &mockDateKey);
 }
 
-// Convenience method so tests can set want they want [NSDate date] to return
+// Convenience method so tests can set what they want [NSDate date] to return
 + (void)setMockDate:(NSDate *)aMockDate {
     objc_setAssociatedObject([NSDate class], &mockDateKey, aMockDate, OBJC_ASSOCIATION_RETAIN);
 }

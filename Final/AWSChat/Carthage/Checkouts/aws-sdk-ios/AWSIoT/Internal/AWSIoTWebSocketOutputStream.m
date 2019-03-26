@@ -1,5 +1,5 @@
 /*
- Copyright 2010-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  
  Licensed under the Apache License, Version 2.0 (the "License").
  You may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 #import <objc/runtime.h>
 #import <Foundation/Foundation.h>
-#import "AWSLogging.h"
+#import "AWSCocoaLumberjack.h"
 #import "AWSIoTWebSocketOutputStream.h"
 #import "AWSSRWebSocket.h"
 
@@ -37,8 +37,7 @@
 
 #pragma mark initialization
 - (instancetype)initToMemoryWithWebSocket:(AWSSRWebSocket *)webSocket {
-    self = [super init];
-    if (self)
+    if (self = [super init])
     {
         self.actualDelegate = [NSOutputStream outputStreamToMemory];
         self.webSocket = webSocket;
@@ -50,7 +49,7 @@
 - (NSInteger)write:(const uint8_t *)buffer maxLength:(NSUInteger)limit
 {
     [self.webSocket send:[NSData dataWithBytes:(void *)buffer length:limit]];
-    AWSLogVerbose(@"sending %lu bytes", (unsigned long)limit);
+    AWSDDLogVerbose(@"sending %lu bytes", (unsigned long)limit);
     return limit;     // writes always succeed
 }
 

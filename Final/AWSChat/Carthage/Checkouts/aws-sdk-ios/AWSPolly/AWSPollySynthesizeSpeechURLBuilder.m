@@ -16,7 +16,7 @@
 #import "AWSPollySynthesizeSpeechURLBuilder.h"
 
 static NSString *const AWSInfoPollySynthesizeSpeechURLBuilder = @"PollySynthesizeSpeechUrlBuilder";
-static NSString *const AWSPollySDKVersion = @"2.5.1";
+static NSString *const AWSPollySDKVersion = @"2.9.3";
 
 NSString *const AWSPollySynthesizeSpeechURLBuilderErrorDomain = @"com.amazonaws.AWSPollySynthesizeSpeechURLBuilderErrorDomain";
 NSString *const AWSPollyPresignedUrlPath = @"v1/speech";
@@ -36,12 +36,11 @@ NSString *const AWSPollyPresignedUrlPath = @"v1/speech";
 @implementation AWSPollySynthesizeSpeechURLBuilderRequest
 
 - (void)setLexiconNames:(NSArray<NSString *> *)lexiconNames {
-    if([lexiconNames count] > 1) {
-        @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                       reason:@"Cannot create Presigned URL with multiple lexicon names"
-                                     userInfo:nil];
-    }
     _lexiconNames = lexiconNames;
+}
+
+- (void)setSpeechMarkTypes:(NSArray<NSString *> *)speechMarkTypes {
+    _speechMarkTypes = speechMarkTypes;
 }
 
 @end
@@ -175,10 +174,16 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
         
         [parameters setObject:[self stringFromVoiceId:preSignedURLRequest.voiceId] forKey:@"VoiceId"];
         
-        //TODO: currently only the first lexicon is picked up, need to add support for string to list types
-        if(preSignedURLRequest.lexiconNames && [preSignedURLRequest.lexiconNames count] > 0)
-        {
-            [parameters setObject:preSignedURLRequest.lexiconNames[0] forKey:@"LexiconName"];
+        if(preSignedURLRequest.lexiconNames && [preSignedURLRequest.lexiconNames count] >= 1) {
+            [parameters setObject:preSignedURLRequest.lexiconNames forKey:@"LexiconNames"];
+        }
+        
+        if(preSignedURLRequest.speechMarkTypes && [preSignedURLRequest.speechMarkTypes count] >= 1) {
+            [parameters setObject:preSignedURLRequest.speechMarkTypes forKey:@"SpeechMarkTypes"];
+        }
+        
+        if (preSignedURLRequest.languageCode) {
+            [parameters setObject:[self stringFromLanguageCode:preSignedURLRequest.languageCode] forKey:@"LanguageCode"];
         }
         
         NSMutableDictionary *headers = [NSMutableDictionary new];
@@ -203,6 +208,8 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             return @"pcm";
         case AWSPollyOutputFormatOggVorbis:
             return @"ogg_vorbis";
+        case AWSPollyOutputFormatJson:
+            return @"json";
         case AWSPollyOutputFormatUnknown:
             return @"";
     }
@@ -216,6 +223,69 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             return @"ssml";
         case AWSPollyTextTypeUnknown:
             return @"";
+    }
+}
+
+- (NSString *)stringFromLanguageCode: (AWSPollyLanguageCode)languageCode {
+    switch (languageCode) {
+        case AWSPollyLanguageCodeCmnCN:
+            return @"cmn-CN";
+        case AWSPollyLanguageCodeCyGB:
+            return @"cy-GB";
+        case AWSPollyLanguageCodeDaDK:
+            return @"da-DK";
+        case AWSPollyLanguageCodeDeDE:
+            return @"de-DE";
+        case AWSPollyLanguageCodeEnAU:
+            return @"en-AU";
+        case AWSPollyLanguageCodeEnGB:
+            return @"en-GB";
+        case AWSPollyLanguageCodeEnGBWLS:
+            return @"en-GB-WLS";
+        case AWSPollyLanguageCodeEnIN:
+            return @"en-IN";
+        case AWSPollyLanguageCodeEnUS:
+            return @"en-US";
+        case AWSPollyLanguageCodeEsES:
+            return @"es-ES";
+        case AWSPollyLanguageCodeEsMX:
+            return @"es-MX";
+        case AWSPollyLanguageCodeEsUS:
+            return @"es-US";
+        case AWSPollyLanguageCodeFrCA:
+            return @"fr-CA";
+        case AWSPollyLanguageCodeFrFR:
+            return @"fr-FR";
+        case AWSPollyLanguageCodeIsIS:
+            return @"is-IS";
+        case AWSPollyLanguageCodeItIT:
+            return @"it-IT";
+        case AWSPollyLanguageCodeJaJP:
+            return @"ja-JP";
+        case AWSPollyLanguageCodeHiIN:
+            return @"hi-IN";
+        case AWSPollyLanguageCodeKoKR:
+            return @"ko-KR";
+        case AWSPollyLanguageCodeNbNO:
+            return @"nb-NO";
+        case AWSPollyLanguageCodeNlNL:
+            return @"nl-NL";
+        case AWSPollyLanguageCodePlPL:
+            return @"pl-PL";
+        case AWSPollyLanguageCodePtBR:
+            return @"pt-BR";
+        case AWSPollyLanguageCodePtPT:
+            return @"pt-PT";
+        case AWSPollyLanguageCodeRoRO:
+            return @"ro-RO";
+        case AWSPollyLanguageCodeRuRU:
+            return @"ru-RU";
+        case AWSPollyLanguageCodeSvSE:
+            return @"sv-SE";
+        case AWSPollyLanguageCodeTrTR:
+            return @"tr-TR";
+        default:
+            return nil;
     }
 }
 
@@ -257,6 +327,8 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             return @"Kendra";
         case AWSPollyVoiceIdKimberly:
             return @"Kimberly";
+        case AWSPollyVoiceIdMatthew:
+            return @"Matthew";
         case AWSPollyVoiceIdSalli:
             return @"Salli";
         case AWSPollyVoiceIdConchita:
@@ -315,6 +387,24 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             return @"Astrid";
         case AWSPollyVoiceIdFiliz:
             return @"Filiz";
+        case AWSPollyVoiceIdVicki:
+            return @"Vicki";
+        case AWSPollyVoiceIdTakumi:
+            return @"Takumi";
+        case AWSPollyVoiceIdSeoyeon:
+            return @"Seoyeon";
+        case AWSPollyVoiceIdAditi:
+            return @"Aditi";
+        case AWSPollyVoiceIdLea:
+            return @"Lea";
+        case AWSPollyVoiceIdZhiyu:
+            return @"Zhiyu";
+        case AWSPollyVoiceIdBianca:
+            return @"Bianca";
+        case AWSPollyVoiceIdLucia:
+            return @"Lucia";
+        case AWSPollyVoiceIdMia:
+            return @"Mia";
         default:
             return nil;
     }

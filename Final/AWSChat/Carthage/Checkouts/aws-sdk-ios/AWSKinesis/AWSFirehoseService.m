@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -24,9 +24,10 @@
 #import <AWSCore/AWSURLRequestRetryHandler.h>
 #import <AWSCore/AWSSynchronizedMutableDictionary.h>
 #import "AWSFirehoseResources.h"
+#import "AWSFirehoseSerializer.h"
 
 static NSString *const AWSInfoFirehose = @"Firehose";
-static NSString *const AWSFirehoseSDKVersion = @"2.5.1";
+NSString *const AWSFirehoseSDKVersion = @"2.9.3";
 
 
 @interface AWSFirehoseResponseSerializer : AWSJSONResponseSerializer
@@ -94,7 +95,8 @@ static NSDictionary *errorCodeDictionary = nil;
                                                        error:error];
         }
     }
-	    return responseObject;
+	
+    return responseObject;
 }
 
 @end
@@ -165,7 +167,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 
         if (!serviceConfiguration) {
             @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                           reason:@"The service configuration is `nil`. You need to configure `Info.plist` or set `defaultServiceConfiguration` before using this method."
+                                           reason:@"The service configuration is `nil`. You need to configure `awsconfiguration.json`, `Info.plist` or set `defaultServiceConfiguration` before using this method."
                                          userInfo:nil];
         }
         _defaultFirehose = [[AWSFirehose alloc] initWithConfiguration:serviceConfiguration];
@@ -267,8 +269,8 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
         headers[@"X-Amz-Target"] = [NSString stringWithFormat:@"%@.%@", targetPrefix, operationName];
         networkingRequest.headers = headers;
         networkingRequest.HTTPMethod = HTTPMethod;
-        networkingRequest.requestSerializer = [[AWSJSONRequestSerializer alloc] initWithJSONDefinition:[[AWSFirehoseResources sharedInstance] JSONObject]
-                                                                                                   actionName:operationName];
+		networkingRequest.requestSerializer = [[AWSFirehoseRequestSerializer alloc] initWithJSONDefinition:[[AWSFirehoseResources sharedInstance] JSONObject]
+		 															     actionName:operationName];
         networkingRequest.responseSerializer = [[AWSFirehoseResponseSerializer alloc] initWithJSONDefinition:[[AWSFirehoseResources sharedInstance] JSONObject]
                                                                                              actionName:operationName
                                                                                             outputClass:outputClass];
@@ -371,6 +373,29 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
     }];
 }
 
+- (AWSTask<AWSFirehoseListTagsForDeliveryStreamOutput *> *)listTagsForDeliveryStream:(AWSFirehoseListTagsForDeliveryStreamInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@"Firehose_20150804"
+                 operationName:@"ListTagsForDeliveryStream"
+                   outputClass:[AWSFirehoseListTagsForDeliveryStreamOutput class]];
+}
+
+- (void)listTagsForDeliveryStream:(AWSFirehoseListTagsForDeliveryStreamInput *)request
+     completionHandler:(void (^)(AWSFirehoseListTagsForDeliveryStreamOutput *response, NSError *error))completionHandler {
+    [[self listTagsForDeliveryStream:request] continueWithBlock:^id _Nullable(AWSTask<AWSFirehoseListTagsForDeliveryStreamOutput *> * _Nonnull task) {
+        AWSFirehoseListTagsForDeliveryStreamOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
 - (AWSTask<AWSFirehosePutRecordOutput *> *)putRecord:(AWSFirehosePutRecordInput *)request {
     return [self invokeRequest:request
                     HTTPMethod:AWSHTTPMethodPOST
@@ -407,6 +432,98 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
      completionHandler:(void (^)(AWSFirehosePutRecordBatchOutput *response, NSError *error))completionHandler {
     [[self putRecordBatch:request] continueWithBlock:^id _Nullable(AWSTask<AWSFirehosePutRecordBatchOutput *> * _Nonnull task) {
         AWSFirehosePutRecordBatchOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSFirehoseStartDeliveryStreamEncryptionOutput *> *)startDeliveryStreamEncryption:(AWSFirehoseStartDeliveryStreamEncryptionInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@"Firehose_20150804"
+                 operationName:@"StartDeliveryStreamEncryption"
+                   outputClass:[AWSFirehoseStartDeliveryStreamEncryptionOutput class]];
+}
+
+- (void)startDeliveryStreamEncryption:(AWSFirehoseStartDeliveryStreamEncryptionInput *)request
+     completionHandler:(void (^)(AWSFirehoseStartDeliveryStreamEncryptionOutput *response, NSError *error))completionHandler {
+    [[self startDeliveryStreamEncryption:request] continueWithBlock:^id _Nullable(AWSTask<AWSFirehoseStartDeliveryStreamEncryptionOutput *> * _Nonnull task) {
+        AWSFirehoseStartDeliveryStreamEncryptionOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSFirehoseStopDeliveryStreamEncryptionOutput *> *)stopDeliveryStreamEncryption:(AWSFirehoseStopDeliveryStreamEncryptionInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@"Firehose_20150804"
+                 operationName:@"StopDeliveryStreamEncryption"
+                   outputClass:[AWSFirehoseStopDeliveryStreamEncryptionOutput class]];
+}
+
+- (void)stopDeliveryStreamEncryption:(AWSFirehoseStopDeliveryStreamEncryptionInput *)request
+     completionHandler:(void (^)(AWSFirehoseStopDeliveryStreamEncryptionOutput *response, NSError *error))completionHandler {
+    [[self stopDeliveryStreamEncryption:request] continueWithBlock:^id _Nullable(AWSTask<AWSFirehoseStopDeliveryStreamEncryptionOutput *> * _Nonnull task) {
+        AWSFirehoseStopDeliveryStreamEncryptionOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSFirehoseTagDeliveryStreamOutput *> *)tagDeliveryStream:(AWSFirehoseTagDeliveryStreamInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@"Firehose_20150804"
+                 operationName:@"TagDeliveryStream"
+                   outputClass:[AWSFirehoseTagDeliveryStreamOutput class]];
+}
+
+- (void)tagDeliveryStream:(AWSFirehoseTagDeliveryStreamInput *)request
+     completionHandler:(void (^)(AWSFirehoseTagDeliveryStreamOutput *response, NSError *error))completionHandler {
+    [[self tagDeliveryStream:request] continueWithBlock:^id _Nullable(AWSTask<AWSFirehoseTagDeliveryStreamOutput *> * _Nonnull task) {
+        AWSFirehoseTagDeliveryStreamOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSFirehoseUntagDeliveryStreamOutput *> *)untagDeliveryStream:(AWSFirehoseUntagDeliveryStreamInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@"Firehose_20150804"
+                 operationName:@"UntagDeliveryStream"
+                   outputClass:[AWSFirehoseUntagDeliveryStreamOutput class]];
+}
+
+- (void)untagDeliveryStream:(AWSFirehoseUntagDeliveryStreamInput *)request
+     completionHandler:(void (^)(AWSFirehoseUntagDeliveryStreamOutput *response, NSError *error))completionHandler {
+    [[self untagDeliveryStream:request] continueWithBlock:^id _Nullable(AWSTask<AWSFirehoseUntagDeliveryStreamOutput *> * _Nonnull task) {
+        AWSFirehoseUntagDeliveryStreamOutput *result = task.result;
         NSError *error = task.error;
 
         if (completionHandler) {

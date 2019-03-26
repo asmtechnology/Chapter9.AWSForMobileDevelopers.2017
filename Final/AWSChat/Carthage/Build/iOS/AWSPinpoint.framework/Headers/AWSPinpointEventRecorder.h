@@ -20,6 +20,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+FOUNDATION_EXPORT NSString *const AWSPinpointAnalyticsErrorDomain;
+
+typedef NS_ENUM(NSInteger, AWSPinpointAnalyticsErrorType) {
+    AWSPinpointAnalyticsErrorUnknown,
+    AWSPinpointAnalyticsErrorBadRequest,
+};
+
+
 /**
  When a `saveEvent:` operation causes the disk size to exceed `notificationByteThreshold`, it posts `AWSPinpointEventByteThresholdReachedNotification`.
  */
@@ -31,7 +39,7 @@ FOUNDATION_EXPORT NSString *const AWSPinpointEventByteThresholdReachedNotificati
 FOUNDATION_EXPORT NSString *const AWSPinpointEventByteThresholdReachedNotificationDiskBytesUsedKey;
 
 /**
- `AWSPinpointEventRecorder` stores events to a local sql lite databse and submits them to Pinpoint.
+ `AWSPinpointEventRecorder` stores events to a local SQLite database and submits them to Pinpoint.
  
  This is the low level client used to record events to local storage.
  
@@ -61,6 +69,11 @@ FOUNDATION_EXPORT NSString *const AWSPinpointEventByteThresholdReachedNotificati
 @property (nonatomic, assign) NSTimeInterval diskAgeLimit;
 
 /**
+ Indicates if submission of events is in progress, only one submission of events is allowed at a time.
+ */
+@property (nonatomic, assign) BOOL submissionInProgress;
+
+/**
  The maxium batch data size in bytes. The default value is 512KB. The maximum is 4MB.
  */
 @property (nonatomic, assign) NSUInteger batchRecordsByteLimit;
@@ -75,18 +88,32 @@ FOUNDATION_EXPORT NSString *const AWSPinpointEventByteThresholdReachedNotificati
 - (AWSTask<AWSPinpointEvent *> *) saveEvent:(AWSPinpointEvent *) event;
 
 /**
- Retrieves events in local storage.
+ Retrieves events in local storage with a limit of 128 events.
  
  @return AWSTask - task.result contains an array of AWSPinpointEvent objects.
  */
 - (AWSTask<NSArray<AWSPinpointEvent *> *> *) getEvents;
 
 /**
- Retrieves dirty events in local storage.
+ Retrieves events in local storage with the specified limit.
+ 
+ @return AWSTask - task.result contains an array of AWSPinpointEvent objects.
+ */
+- (AWSTask<NSArray<AWSPinpointEvent *> *> *) getEventsWithLimit:(NSNumber *) limit;
+
+/**
+ Retrieves dirty events in local storage with a limit of 128 events.
  
  @return AWSTask - task.result contains an array of AWSPinpointEvent objects.
  */
 - (AWSTask<NSArray<AWSPinpointEvent *> *> *) getDirtyEvents;
+
+/**
+ Retrieves dirty events in local storage with the specified limit.
+ 
+ @return AWSTask - task.result contains an array of AWSPinpointEvent objects.
+ */
+- (AWSTask<NSArray<AWSPinpointEvent *> *> *) getDirtyEventsWithLimit:(NSNumber *) limit;
 
 /**
  Submits all locally saved events to Amazon Pinpoint. Events that are successfully sent will be deleted from the device. Events that fail due to the device being offline will stop the submission process and be kept. Events that fail due to other reasons (such as the event being invalid) will be marked dirty and moved to a dirty table.

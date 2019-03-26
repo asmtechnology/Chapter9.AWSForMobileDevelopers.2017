@@ -14,21 +14,25 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "AWSCocoaLumberjack.h"
+#import <AWSCore/AWSCore.h>
 
 FOUNDATION_EXPORT NSString *const AWSTestUtilitySTSKey;
 FOUNDATION_EXPORT NSString *const AWSTestUtilityCognitoIdentityServiceKey;
 
 @interface AWSTestUtility : NSObject
 
-+(void)setupCrdentialsViaFile;
++ (void)setupCrdentialsViaFile;
 + (void)setupFakeCognitoCredentialsProvider;
 + (void)setupCognitoCredentialsProvider;
 + (void)setupSTS;
 + (void)setupCognitoIdentityService;
++ (NSDictionary<NSString *, NSString *> *)getCredentialsJsonAsDictionary;
 
 - (NSDate *)mockDateSwizzle;
 + (void)setMockDate:(NSDate *)aMockDate;
 + (void)setupSwizzling;
 + (void)revertSwizzling;
++ (NSString *)getIoTEndPoint:(NSString *) endpointName;
 
 @end

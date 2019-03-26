@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
 #import "AWSAutoScalingResources.h"
 
 static NSString *const AWSInfoAutoScaling = @"AutoScaling";
-static NSString *const AWSAutoScalingSDKVersion = @"2.5.1";
+NSString *const AWSAutoScalingSDKVersion = @"2.9.3";
 
 
 @interface AWSAutoScalingResponseSerializer : AWSXMLResponseSerializer
@@ -46,6 +46,7 @@ static NSDictionary *errorCodeDictionary = nil;
                             @"ResourceContention" : @(AWSAutoScalingErrorResourceContention),
                             @"ResourceInUse" : @(AWSAutoScalingErrorResourceInUse),
                             @"ScalingActivityInProgress" : @(AWSAutoScalingErrorScalingActivityInProgress),
+                            @"ServiceLinkedRoleFailure" : @(AWSAutoScalingErrorServiceLinkedRoleFailure),
                             };
 }
 
@@ -62,23 +63,24 @@ static NSDictionary *errorCodeDictionary = nil;
                                                     data:data
                                                    error:error];
     if (!*error && [responseObject isKindOfClass:[NSDictionary class]]) {
-    	if (!*error && [responseObject isKindOfClass:[NSDictionary class]]) {
-	        if ([errorCodeDictionary objectForKey:[[[responseObject objectForKey:@"__type"] componentsSeparatedByString:@"#"] lastObject]]) {
-	            if (error) {
-	                *error = [NSError errorWithDomain:AWSAutoScalingErrorDomain
-	                                             code:[[errorCodeDictionary objectForKey:[[[responseObject objectForKey:@"__type"] componentsSeparatedByString:@"#"] lastObject]] integerValue]
-	                                         userInfo:responseObject];
-	            }
-	            return responseObject;
-	        } else if ([[[responseObject objectForKey:@"__type"] componentsSeparatedByString:@"#"] lastObject]) {
-	            if (error) {
-	                *error = [NSError errorWithDomain:AWSCognitoIdentityErrorDomain
-	                                             code:AWSCognitoIdentityErrorUnknown
-	                                         userInfo:responseObject];
-	            }
-	            return responseObject;
-	        }
-    	}
+
+        NSDictionary *errorInfo = responseObject[@"Error"];
+        if (errorInfo[@"Code"] && errorCodeDictionary[errorInfo[@"Code"]]) {
+            if (error) {
+                *error = [NSError errorWithDomain:AWSAutoScalingErrorDomain
+                                             code:[errorCodeDictionary[errorInfo[@"Code"]] integerValue]
+                                         userInfo:errorInfo
+                         ];
+                return responseObject;
+            }
+        } else if (errorInfo) {
+            if (error) {
+                *error = [NSError errorWithDomain:AWSAutoScalingErrorDomain
+                                             code:AWSAutoScalingErrorUnknown
+                                         userInfo:errorInfo];
+                return responseObject;
+            }
+        }
     }
 
     if (!*error && response.statusCode/100 != 2) {
@@ -94,7 +96,8 @@ static NSDictionary *errorCodeDictionary = nil;
                                                        error:error];
         }
     }
-	    return responseObject;
+
+    return responseObject;
 }
 
 @end
@@ -165,7 +168,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 
         if (!serviceConfiguration) {
             @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                           reason:@"The service configuration is `nil`. You need to configure `Info.plist` or set `defaultServiceConfiguration` before using this method."
+                                           reason:@"The service configuration is `nil`. You need to configure `awsconfiguration.json`, `Info.plist` or set `defaultServiceConfiguration` before using this method."
                                          userInfo:nil];
         }
         _defaultAutoScaling = [[AWSAutoScaling alloc] initWithConfiguration:serviceConfiguration];
@@ -334,6 +337,52 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
      completionHandler:(void (^)(AWSAutoScalingAttachLoadBalancersResultType *response, NSError *error))completionHandler {
     [[self attachLoadBalancers:request] continueWithBlock:^id _Nullable(AWSTask<AWSAutoScalingAttachLoadBalancersResultType *> * _Nonnull task) {
         AWSAutoScalingAttachLoadBalancersResultType *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSAutoScalingBatchDeleteScheduledActionAnswer *> *)batchDeleteScheduledAction:(AWSAutoScalingBatchDeleteScheduledActionType *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@""
+                 operationName:@"BatchDeleteScheduledAction"
+                   outputClass:[AWSAutoScalingBatchDeleteScheduledActionAnswer class]];
+}
+
+- (void)batchDeleteScheduledAction:(AWSAutoScalingBatchDeleteScheduledActionType *)request
+     completionHandler:(void (^)(AWSAutoScalingBatchDeleteScheduledActionAnswer *response, NSError *error))completionHandler {
+    [[self batchDeleteScheduledAction:request] continueWithBlock:^id _Nullable(AWSTask<AWSAutoScalingBatchDeleteScheduledActionAnswer *> * _Nonnull task) {
+        AWSAutoScalingBatchDeleteScheduledActionAnswer *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSAutoScalingBatchPutScheduledUpdateGroupActionAnswer *> *)batchPutScheduledUpdateGroupAction:(AWSAutoScalingBatchPutScheduledUpdateGroupActionType *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@""
+                  targetPrefix:@""
+                 operationName:@"BatchPutScheduledUpdateGroupAction"
+                   outputClass:[AWSAutoScalingBatchPutScheduledUpdateGroupActionAnswer class]];
+}
+
+- (void)batchPutScheduledUpdateGroupAction:(AWSAutoScalingBatchPutScheduledUpdateGroupActionType *)request
+     completionHandler:(void (^)(AWSAutoScalingBatchPutScheduledUpdateGroupActionAnswer *response, NSError *error))completionHandler {
+    [[self batchPutScheduledUpdateGroupAction:request] continueWithBlock:^id _Nullable(AWSTask<AWSAutoScalingBatchPutScheduledUpdateGroupActionAnswer *> * _Nonnull task) {
+        AWSAutoScalingBatchPutScheduledUpdateGroupActionAnswer *result = task.result;
         NSError *error = task.error;
 
         if (completionHandler) {

@@ -9,7 +9,7 @@ function cleanup
 }
 
 
-VERSION="2.5.1"
+VERSION="2.9.3"
 if [ -n $1 ] && [ "$1" == "clean" ];
 then
 	cleanup
@@ -33,12 +33,15 @@ else
     cp -r AWSCognitoIdentityProvider ./docs_tmp/AWSCognitoIdentityProvider
     cp -r AWSCloudWatch ./docs_tmp/AWSCloudWatch
     cp -r AWSDynamoDB ./docs_tmp/AWSDynamoDB
-    cp -r AWSEC2 ./docs_tmp/AWSEC2
     cp -r AWSElasticLoadBalancing ./docs_tmp/AWSElasticLoadBalancing
     cp -r AWSIoT ./docs_tmp/AWSIoT
     cp -r AWSKinesis ./docs_tmp/AWSKinesis
+    cp -r AWSKinesisVideo ./docs_tmp/AWSKinesisVideo
+    cp -r AWSKinesisVideoArchivedMedia ./docs_tmp/AWSKinesisVideoArchivedMedia
+    cp -r AWSKMS ./docs_tmp/AWSKMS
     cp -r AWSLambda ./docs_tmp/AWSLambda
     cp -r AWSLex ./docs_tmp/AWSLex
+    cp -r AWSLogs ./docs_tmp/AWSLogs
     cp -r AWSMachineLearning ./docs_tmp/AWSMachineLearning
     cp -r AWSMobileAnalytics ./docs_tmp/AWSMobileAnalytics
     cp -r AWSPinpoint ./docs_tmp/AWSPinpoint
@@ -49,11 +52,22 @@ else
     cp -r AWSSimpleDB ./docs_tmp/AWSSimpleDB
     cp -r AWSSNS ./docs_tmp/AWSSNS
     cp -r AWSSQS ./docs_tmp/AWSSQS
-	
+    cp -r AWSTranscribe ./docs_tmp/AWSTranscribe
+    cp -r AWSTranslate ./docs_tmp/AWSTranslate
+    cp -r AWSComprehend ./docs_tmp/AWSComprehend
+    cp -r AWSCognitoAuth ./docs_tmp/AWSCognitoAuth
+    cp -r AWSAuthSDK/Sources/AWSAuthCore ./docs_tmp/AWSAuthSDK/
+    cp -r AWSAuthSDK/Sources/AWSAuthUI ./docs_tmp/AWSAuthSDK/
+    cp -r AWSAuthSDK/Sources/AWSFacebookSignIn ./docs_tmp/AWSAuthSDK/
+    cp -r AWSAuthSDK/Sources/AWSGoogleSignIn ./docs_tmp/AWSAuthSDK/
+    cp -r AWSAuthSDK/Sources/AWSUserPoolsSignIn ./docs_tmp/AWSAuthSDK/
+    cp -r AWSAuthSDK/Sources/AWSAuthUI ./docs_tmp/AWSAuthSDK/
+
     rm -rf ./docs_tmp/AWSCore/Bolts
     rm -rf ./docs_tmp/AWSCore/Fabric
     rm -rf ./docs_tmp/AWSCore/FMDB
     rm -rf ./docs_tmp/AWSCore/GZIP
+    rm -rf ./docs_tmp/AWSCore/Logging
     rm -rf ./docs_tmp/AWSCore/Mantle
     rm -rf ./docs_tmp/AWSCore/Reachability
     rm -rf ./docs_tmp/AWSCore/TMCache
@@ -63,9 +77,11 @@ else
     rm -rf ./docs_tmp/AWSCognito/Internal
     rm -rf ./docs_tmp/AWSCognito/Fabric
     rm -rf ./docs_tmp/AWSCognitoIdentityProvider/Internal
+    rm -rf ./docs_tmp/AWSCognitoAuth/Internal
     rm -rf ./docs_tmp/AWSMobileAnalytics/Internal
     rm -rf ./docs_tmp/AWSIoT/Internal
     rm -rf ./docs_tmp/AWSLex/Bluefront
+    rm -rf ./docs_tmp/AWSAuthSDK/UserPoolsUI
 	
     cd docs_tmp
 

@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -271,6 +271,26 @@ NSString *const AWSSQSErrorDomain = @"com.amazonaws.AWSSQSErrorDomain";
 
 @end
 
+@implementation AWSSQSListQueueTagsRequest
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"queueUrl" : @"QueueUrl",
+             };
+}
+
+@end
+
+@implementation AWSSQSListQueueTagsResult
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"tags" : @"Tags",
+             };
+}
+
+@end
+
 @implementation AWSSQSListQueuesRequest
 
 + (NSDictionary *)JSONKeyPathsByPropertyKey {
@@ -493,6 +513,28 @@ NSString *const AWSSQSErrorDomain = @"com.amazonaws.AWSSQSErrorDomain";
 	return @{
              @"attributes" : @"Attributes",
              @"queueUrl" : @"QueueUrl",
+             };
+}
+
+@end
+
+@implementation AWSSQSTagQueueRequest
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"queueUrl" : @"QueueUrl",
+             @"tags" : @"Tags",
+             };
+}
+
+@end
+
+@implementation AWSSQSUntagQueueRequest
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"queueUrl" : @"QueueUrl",
+             @"tagKeys" : @"TagKeys",
              };
 }
 

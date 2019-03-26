@@ -14,7 +14,6 @@
 //
 
 #import "AWSIoTCSR.h"
-#import "AWSIOTService.h"
 #import "AWSIoTKeychain.h"
 
 unsigned char seqTag = 0x30;
@@ -41,8 +40,10 @@ unsigned char setTag = 0x31;
     return nil;
 }
 
-- (instancetype)initWithCommonName:(NSString*)commonName countryName:(NSString*)countryName organizationName:(NSString*)organizationName organizationalUnitName:(NSString*)organizationalUnitName {
-    
+- (instancetype)initWithCommonName:(NSString*)commonName
+                       countryName:(NSString*)countryName
+                  organizationName:(NSString*)organizationName
+            organizationalUnitName:(NSString*)organizationalUnitName {
     if (self = [super init]) {
         _commonName = commonName;
         _countryName = countryName;
@@ -269,7 +270,7 @@ unsigned char setTag = 0x31;
         itr++;
     }
     
-    for (int i = 0 ; i < num_bytes; i++) ret = (ret * 0x100) + data[itr + i];
+    for (int i = 0; i < num_bytes; i++) ret = (ret * 0x100) + data[itr + i];
     
     *iterator = itr + num_bytes;
     return ret;

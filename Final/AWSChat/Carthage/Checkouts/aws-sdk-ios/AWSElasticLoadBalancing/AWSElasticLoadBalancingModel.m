@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -412,6 +412,32 @@ NSString *const AWSElasticLoadBalancingErrorDomain = @"com.amazonaws.AWSElasticL
 
 @end
 
+@implementation AWSElasticLoadBalancingDescribeAccountLimitsInput
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"marker" : @"Marker",
+             @"pageSize" : @"PageSize",
+             };
+}
+
+@end
+
+@implementation AWSElasticLoadBalancingDescribeAccountLimitsOutput
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"limits" : @"Limits",
+             @"nextMarker" : @"NextMarker",
+             };
+}
+
++ (NSValueTransformer *)limitsJSONTransformer {
+    return [NSValueTransformer awsmtl_JSONArrayTransformerWithModelClass:[AWSElasticLoadBalancingLimit class]];
+}
+
+@end
+
 @implementation AWSElasticLoadBalancingDescribeEndPointStateInput
 
 + (NSDictionary *)JSONKeyPathsByPropertyKey {
@@ -602,6 +628,17 @@ NSString *const AWSElasticLoadBalancingErrorDomain = @"com.amazonaws.AWSElasticL
 	return @{
              @"cookieExpirationPeriod" : @"CookieExpirationPeriod",
              @"policyName" : @"PolicyName",
+             };
+}
+
+@end
+
+@implementation AWSElasticLoadBalancingLimit
+
++ (NSDictionary *)JSONKeyPathsByPropertyKey {
+	return @{
+             @"max" : @"Max",
+             @"name" : @"Name",
              };
 }
 

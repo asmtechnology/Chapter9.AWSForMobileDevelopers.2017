@@ -22,7 +22,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 NSString *const AWSInfoInteractionKit = @"LexInteractionKit";
-NSString *const AWSInteractionKitSDKVersion = @"2.5.1";
+NSString *const AWSInteractionKitSDKVersion = @"2.9.3";
 NSString *const AWSInternalLexInteractionKit = @"LexInteractionKitClient";
 NSString *const AWSLexInteractionKitUserAgent = @"interactionkit";
 NSString *const AWSLexInteractionKitErrorDomain = @"com.amazonaws.AWSLexInteractionKitErrorDomain";
@@ -59,6 +59,38 @@ typedef NS_ENUM(NSInteger, AWSLexSpeechState) {
 
 @end
 
+@interface AWSLexSwitchModeInput()
+
+@property (nonatomic, strong, readwrite) NSString * _Nullable intent;
+
+@property (nonatomic, strong, readwrite) NSString * _Nullable outputText;
+
+@property (nonatomic, strong, readwrite) NSDictionary * _Nullable slots;
+
+@property (nonatomic, strong, readwrite) NSString * _Nullable elicitSlot;
+
+@property (nonatomic, assign, readwrite) AWSLexDialogState dialogState;
+
+@property (nonatomic, strong, readwrite) NSDictionary * _Nullable sessionAttributes;
+
+@property (nonatomic, strong, readwrite) NSData * _Nullable audioStream;
+
+@property (nonatomic, strong, readwrite) NSString * _Nullable audioContentType;
+
+@property (nonatomic, strong, readwrite) NSString * _Nullable inputTranscript;
+
+- (instancetype) initWithOutputText:(NSString *)outputText
+                             intent:(NSString * _Nullable)intent
+                  sessionAttributes:(NSDictionary * _Nullable)sessionAttributes
+                       slotToElicit:(NSString * _Nullable)elicitSlot
+                              slots:(NSDictionary * _Nullable)slots
+                        dialogState:(AWSLexDialogState)dialogState
+                        audioStream:(NSData * _Nullable)audioStream
+                   audioContentType:(NSString * _Nullable)audioContentType
+                    inputTranscript:(NSString * _Nullable)inputTranscript;
+
+@end
+
 @implementation AWSLexSwitchModeInput
 
 - (instancetype) initWithOutputText:(NSString *)outputText
@@ -68,7 +100,8 @@ typedef NS_ENUM(NSInteger, AWSLexSpeechState) {
                               slots:(NSDictionary * _Nullable)slots
                         dialogState:(AWSLexDialogState)dialogState
                         audioStream:(NSData * _Nullable)audioStream
-                   audioContentType:(NSString * _Nullable)audioContentType{
+                   audioContentType:(NSString * _Nullable)audioContentType
+                    inputTranscript:(NSString * _Nullable)inputTranscript{
     self = [super init];
     if(self) {
         _intent = intent;
@@ -79,6 +112,7 @@ typedef NS_ENUM(NSInteger, AWSLexSpeechState) {
         _dialogState = dialogState;
         _audioStream = [audioStream copy];
         _audioContentType = audioContentType;
+        _inputTranscript = inputTranscript;
     }
     return self;
 }
@@ -182,7 +216,7 @@ const NSUInteger MaxSpeechTimeoutInterval = 15;
 
 @end
 
-@interface AWSLexInteractionKit()<BFAudioSourceDelegate, NSStreamDelegate, AVAudioPlayerDelegate, AWSLexRequestRetryHandlerDelegate>
+@interface AWSLexInteractionKit()<BFAudioSourceDelegate, NSStreamDelegate, AWSLexRequestRetryHandlerDelegate>
 
 // the AWS Service configuration
 @property (nonatomic, readonly) AWSServiceConfiguration *configuration;
@@ -191,10 +225,13 @@ const NSUInteger MaxSpeechTimeoutInterval = 15;
 
 @property (nonatomic, strong) NSDictionary *sessionAttributes;
 
+@property (nonatomic) BOOL resumeListening;
+@property (nonatomic) AWSLexInteractionMode currentState;
+
 @end
 
 @implementation AWSLexInteractionKit{
-    AVAudioPlayer *audioPlayer;
+    AWSLexAudioPlayer *audioPlayer;
     NSUInteger numOfBytesSent;
     BOOL isStreaming;
     NSDate *recordingStartDate;
@@ -202,7 +239,6 @@ const NSUInteger MaxSpeechTimeoutInterval = 15;
     BOOL isListening;
     BFAudioSource *audioSource;
     BFVADConfig *vadConfig;
-    AWSLexInteractionMode currentState;
     
     // the processed audio to be sent over http
     NSMutableData *consumerAudioBuffer;
@@ -211,7 +247,6 @@ const NSUInteger MaxSpeechTimeoutInterval = 15;
     NSMutableData *producerAudioBuffer;
     NSOutputStream *producerStream;
     
-    BOOL resumeListening;
     dispatch_queue_t interactionDelegateQueue;
     
     NSDictionary *sessionAttributesForSpeechInput;
@@ -250,7 +285,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             interactionKitConfig = [AWSLexInteractionKitConfig defaultInteractionKitConfigWithBotName:botName botAlias:botAlias];
         }
         
-        if (!serviceConfiguration && !interactionKitConfig) {
+        if (!serviceConfiguration || !interactionKitConfig) {
             @throw [NSException exceptionWithName:NSInternalInconsistencyException
                                            reason:@"The service configuration is `nil`. You need to configure `Info.plist` or set `defaultServiceConfiguration` before using this method."
                                          userInfo:nil];
@@ -280,8 +315,8 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
     [_serviceClients removeObjectForKey:key];
 }
 
-- (instancetype)initWithServiceConfiguration:(AWSServiceConfiguration *)serviceConfiguration
-                        interactionKitConfig:(AWSLexInteractionKitConfig *)interactionConfig
+- (instancetype)initWithServiceConfiguration:(nonnull AWSServiceConfiguration *)serviceConfiguration
+                        interactionKitConfig:(nonnull AWSLexInteractionKitConfig *)interactionConfig
 {
     if (self = [super init]) {
         _configuration = [serviceConfiguration copy];
@@ -337,15 +372,15 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 }
 
 - (void)textInTextOut:(NSString *)inputText sessionAttributes:(NSDictionary<NSString *, NSString *> *)sessionAttributes{
-    currentState = AWSLexInteractionModeText;
+    self.currentState = AWSLexInteractionModeText;
     
     textInput = inputText;
     
     AWSLexPostContentRequest *request = [AWSLexPostContentRequest new];
     
     NSMutableDictionary *attributes = [[NSMutableDictionary alloc] initWithDictionary:self.interactionKitConfig.globalSessionAttributes];
-    [attributes addEntriesFromDictionary:sessionAttributes];
     [attributes addEntriesFromDictionary:self.sessionAttributes];
+    [attributes addEntriesFromDictionary:sessionAttributes];
     
     [request setSessionAttributes:attributes];
     [request setAccept:AWSLexAcceptText];
@@ -359,13 +394,13 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 }
 
 - (void)textInAudioOut:(NSString *)inputText sessionAttributes:(NSDictionary<NSString *, NSString *> * _Nullable)sessionAttributes{
-    currentState = AWSLexInteractionModeTextToSpeech;
+    self.currentState = AWSLexInteractionModeTextToSpeech;
     
     AWSLexPostContentRequest *request = [AWSLexPostContentRequest new];
     
     NSMutableDictionary *attributes = [[NSMutableDictionary alloc] initWithDictionary:self.interactionKitConfig.globalSessionAttributes];
-    [attributes addEntriesFromDictionary:sessionAttributes];
     [attributes addEntriesFromDictionary:self.sessionAttributes];
+    [attributes addEntriesFromDictionary:sessionAttributes];
     
     [request setSessionAttributes:attributes];
     [request setAccept:AWSLexAcceptMPEG];
@@ -405,7 +440,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 
 - (void)didStart{
     recordingStartDate = [NSDate date];
-    AWSLogVerbose(@"recording started at %@", recordingStartDate);
+    AWSDDLogVerbose(@"recording started at %@", recordingStartDate);
     __weak AWSLexInteractionKit *weakSelf = self;
     [self dispatchBlockOnMainQueue:^{
         if(weakSelf.microphoneDelegate && [weakSelf.microphoneDelegate respondsToSelector:@selector(interactionKitOnRecordingStart:)]) {
@@ -427,7 +462,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             case AWSLexSpeechStateUninitialized:{
                 NSTimeInterval noSpeechTimout = [[NSDate date] timeIntervalSinceDate:recordingStartDate];
                 if (noSpeechTimout > self.interactionKitConfig.noSpeechTimeoutInterval) {
-                    AWSLogVerbose(@"no speech for interval %f", noSpeechTimout);
+                    AWSDDLogVerbose(@"no speech for interval %f", noSpeechTimout);
                     [self handleNoSpeechTimeout];
                 } else {
                     // Add beginning of audio. Without this, voice will not be recognized due to missing audio stream.
@@ -480,18 +515,18 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 }
 
 - (void)didHaveError:(NSError *)error{
-    AWSLogVerbose(@"Voice detection errored %@", error);
+    AWSDDLogVerbose(@"Voice detection errored %@", error);
     [self handleError:error];
 }
 
 - (void)didDetectStartOfSpeech{
-    AWSLogVerbose(@"AWSLexSpeechStateStarted",nil);
+    AWSDDLogVerbose(@"AWSLexSpeechStateStarted",nil);
     speechState = AWSLexSpeechStateStarted;
 }
 
 //to handle end of speech form vad
 - (void)didDetectEndOfSpeech{
-    AWSLogVerbose(@"AWSLexSpeechStateEnded",nil);
+    AWSDDLogVerbose(@"AWSLexSpeechStateEnded",nil);
     [self handleEndOfSpeech];
 }
 
@@ -515,7 +550,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 - (void)resetStates{
     isListening = NO;
     isStreaming = NO;
-    resumeListening = NO;
+    self.resumeListening = NO;
     isEndpointed = NO;
     isStartpointed = NO;
     audioStartpointedTime = nil;
@@ -524,20 +559,20 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 }
 
 - (void)handleEndOfSpeech{
-    AWSLogVerbose(@"AWSLexSpeechStateEnded",nil);
+    AWSDDLogVerbose(@"AWSLexSpeechStateEnded",nil);
     speechState = AWSLexSpeechStateEnded;
     __weak AWSLexInteractionKit *weakSelf = self;
     [self dispatchBlockOnMainQueue:^{
         if(weakSelf.microphoneDelegate && [weakSelf.microphoneDelegate respondsToSelector:@selector(interactionKitOnRecordingEnd:audioStream:contentType:)]) {
             //TODO: need to decode the audio to something thats understandable by the audio player.
-            [weakSelf.microphoneDelegate interactionKitOnRecordingEnd:weakSelf audioStream:[producerAudioBuffer copy] contentType:[audioSource contentType]];
+            [weakSelf.microphoneDelegate interactionKitOnRecordingEnd:weakSelf audioStream:[self->producerAudioBuffer copy] contentType:[self->audioSource contentType]];
         }
     }];
 }
 
 - (void)closeStreams{
     @synchronized (self) {
-        AWSLogVerbose(@"closing streams", nil);
+        AWSDDLogVerbose(@"closing streams", nil);
         [producerStream close];
         [consumerStream close];
     }
@@ -554,10 +589,10 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 }
 
 - (void)setupAndStartListeningForMode:(AWSLexInteractionMode )interactionMode{
-    currentState = interactionMode;
+    self.currentState = interactionMode;
     if(!isListening && !isStreaming) {
         speechState = AWSLexSpeechStateUninitialized;
-        AWSLogVerbose(@"Start Listening",nil);
+        AWSDDLogVerbose(@"Start Listening",nil);
         
         //setup all resources.
         audioSource = [[BFAudioRecorder alloc] initWithEncoding:[self blueFrontAudioEncoding:self.interactionKitConfig.encoding] voiceActivityDetectorConfiguration:vadConfig];
@@ -584,7 +619,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
         
         producerStream.delegate = self;
         
-        AWSLogVerbose(@"finished creating consumer and producer streams %@  %@", consumerStream, producerStream);
+        AWSDDLogVerbose(@"finished creating consumer and producer streams %@  %@", consumerStream, producerStream);
         [producerStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
                                   forMode:NSDefaultRunLoopMode];
         [producerStream open];
@@ -593,13 +628,13 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
         
         [audioSource start];
         
-        AWSLogVerbose(@"Started Listening to Audio Source");
+        AWSDDLogVerbose(@"Started Listening to Audio Source");
     }
 }
 
 - (void)stopListening{
     if (isListening) {
-        AWSLogVerbose(@"Stop Listening",nil);
+        AWSDDLogVerbose(@"Stop Listening",nil);
         isListening = NO;
         [producerStream close];
         producerStream.delegate = nil;
@@ -615,7 +650,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
         UInt8 chunkBuffer[range.length];
         [producerAudioBuffer getBytes:chunkBuffer range:range];
         NSInteger result = [producerStream write:chunkBuffer maxLength:range.length];
-        AWSLogVerbose(@"wrote %ld to producer stream", (long)result);
+        AWSDDLogVerbose(@"wrote %ld to producer stream", (long)result);
         if (result >= 0) {
             numOfBytesSent += result;
             //start streaming only after we get an actual audio
@@ -634,11 +669,11 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
         AWSLexPostContentRequest *request = [AWSLexPostContentRequest new];
         
         NSMutableDictionary *attributes = [[NSMutableDictionary alloc] initWithDictionary:self.interactionKitConfig.globalSessionAttributes];
-        [attributes addEntriesFromDictionary:sessionAttributesForSpeechInput];
         [attributes addEntriesFromDictionary:self.sessionAttributes];
+        [attributes addEntriesFromDictionary:sessionAttributesForSpeechInput];
         [request setSessionAttributes:attributes];
         
-        if(currentState == AWSLexInteractionModeSpeechToText){
+        if (self.currentState == AWSLexInteractionModeSpeechToText){
             [request setAccept:AWSLexAcceptText];
         } else {
             [request setAccept:AWSLexAcceptMPEG];
@@ -650,41 +685,13 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
     }
 }
 
-#pragma mark -
-
-
-#pragma mark AVAudioPlayerDelegate
-
-- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag{
-    audioPlayer.delegate = nil;
-    audioPlayer = nil;
-    if(flag) {
-        [self dispatchBlockOnMainQueue:^{
-            if(self.audioPlayerDelegate && [self.audioPlayerDelegate respondsToSelector:@selector(interactionKitOnAudioPlaybackFinished:)]) {
-                [self.audioPlayerDelegate interactionKitOnAudioPlaybackFinished:self];
-            }
-            if(resumeListening) {
-                [self setupAndStartListeningForMode:currentState];
-            }
-        }];
-    } else {
-        AWSLogVerbose(@"audio player finished unsuccessfully", nil);
-        [self handleError:[NSError errorWithDomain:AWSLexInteractionKitErrorDomain code:AWSLexInteractionKitErrorCodeAudioStreaming userInfo:nil]];
-    }
-}
-
-- (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error{
-    audioPlayer.delegate = nil;
-    audioPlayer = nil;
-    [self handleError:error];
-}
 
 #pragma mark -
 
 #pragma mark NSStreamDelegate
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode{
-    AWSLogVerbose(@"stream event %lu", (unsigned long)eventCode);
+    AWSDDLogVerbose(@"stream event %lu", (unsigned long)eventCode);
     switch (eventCode)
     {
         case NSStreamEventErrorOccurred:{
@@ -733,15 +740,15 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
             [self handleError:task.error];
             return nil;
         }else{
-            return [_serviceClient postContent:request];
+            return [self->_serviceClient postContent:request];
         }
     }] continueWithBlock:^id _Nullable(AWSTask<AWSLexPostContentResponse *> * _Nonnull task) {
-        isStreaming = NO;
-        resumeListening = NO;
+        self->isStreaming = NO;
+        self.resumeListening = NO;
         
         [self releaseAudioSource];
         
-        postRequest = nil;
+        self->postRequest = nil;
         
         if(task.error){
             [self handleError:task.error];
@@ -765,7 +772,8 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
                                                                                    slots:response.slots
                                                                              dialogState:response.dialogState
                                                                              audioStream:response.audioStream
-                                                                        audioContentType:response.contentType];
+                                                                        audioContentType:response.contentType
+                                                                         inputTranscript:response.inputTranscript];
         
         if(response.dialogState == AWSLexDialogStateFailed) {
             //send the response in the userInfo since the callback is not called.
@@ -836,9 +844,9 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
                             
                             return nil;
                         }];
-                    }else{
-                        resumeListening = YES;
-                        currentState = switchModeResponse.interactionMode;
+                    } else {
+                        self.resumeListening = YES;
+                        self.currentState = switchModeResponse.interactionMode;
                     }
                     
                     return nil;
@@ -849,11 +857,11 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
     }];
 }
 
-- (void)dispatchBlockOnMainQueue:(void (^)())block{
+- (void)dispatchBlockOnMainQueue:(void (^)(void))block{
     dispatch_async(dispatch_get_main_queue(), block);
 }
 
-- (void)dispatchBlockOnInteractionDelegateQueue:(void (^)())block{
+- (void)dispatchBlockOnInteractionDelegateQueue:(void (^)(void))block{
     dispatch_async(interactionDelegateQueue, block);
 }
 
@@ -886,39 +894,53 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 - (void)enqueuePlayback:(NSData *)audioData{
     if(self.interactionKitConfig.autoPlayback) {
         NSError *audioPlaybackError;
-        AVAudioSession *session = [AVAudioSession sharedInstance];
-        [session setCategory:AVAudioSessionCategoryPlayAndRecord error:&audioPlaybackError];
+        AWSLexAudioSession *session = [AWSLexAudioSession sharedInstance];
+        // It would be little complicated to determine when to stop observing the notification.
+        // To simplify thing, we will start and end observing only during audio is enqueued for now. 
+        [session startObservingAudioSessionRouteChangeNotification];
+        [session setPlayAndRecordCategory:&audioPlaybackError];
         
         if(audioPlaybackError) {
-            AWSLogError(@"error processing audio , %@", audioPlaybackError);
+            AWSDDLogError(@"error processing audio , %@", audioPlaybackError);
             [self handleError:audioPlaybackError];
             return;
         }
         
-        [session overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&audioPlaybackError];
+        [session overrideOutputAudioPort:&audioPlaybackError];
         
         if(audioPlaybackError) {
-            AWSLogError(@"error processing audio , %@", audioPlaybackError);
+            AWSDDLogError(@"error processing audio , %@", audioPlaybackError);
             [self handleError:audioPlaybackError];
             return;
         }
         
-        audioPlayer = [[AVAudioPlayer alloc] initWithData:audioData error:&audioPlaybackError];
-        audioPlayer.delegate = self;
-        
-        if(audioPlaybackError) {
-            AWSLogError(@"error processing audio , %@", audioPlaybackError);
-            [self handleError:audioPlaybackError];
-            return;
-        }
+        // Using AVAudioPlayer wrapper to centralize all the sound related logic.
+        audioPlayer = [[AWSLexAudioPlayer alloc] initWithData:audioData];
+        __typeof__(self) __weak weakSelf = self;
+        audioPlayer.errorBlock = ^(NSError *error) {
+            AWSDDLogError(@"error processing audio , %@", error);
+            [[AWSLexAudioSession sharedInstance] endObservingAudioSessionRouteChangeNotification];
+            [weakSelf handleError:error];
+        };
+        audioPlayer.completionBlock = ^{
+            [[AWSLexAudioSession sharedInstance] endObservingAudioSessionRouteChangeNotification];
+            if(weakSelf.audioPlayerDelegate
+               && [weakSelf.audioPlayerDelegate respondsToSelector:@selector(interactionKitOnAudioPlaybackFinished:)]) {
+                [weakSelf.audioPlayerDelegate interactionKitOnAudioPlaybackFinished:weakSelf];
+            }
+            if (weakSelf.resumeListening) {
+                [weakSelf setupAndStartListeningForMode:weakSelf.currentState];
+            }
+        };
+        audioPlayer.preparedBlock = ^{
+            if (weakSelf.audioPlayerDelegate &&
+                [weakSelf.audioPlayerDelegate respondsToSelector:@selector(interactionKitOnAudioPlaybackStarted:)]) {
+                [weakSelf.audioPlayerDelegate interactionKitOnAudioPlaybackStarted:weakSelf];
+            }
+        };
         
         [self dispatchBlockOnMainQueue:^{
-            [audioPlayer prepareToPlay];
-            if(self.audioPlayerDelegate && [self.audioPlayerDelegate respondsToSelector:@selector(interactionKitOnAudioPlaybackStarted:)]) {
-                [self.audioPlayerDelegate interactionKitOnAudioPlaybackStarted:self];
-            }
-            [audioPlayer play];
-            [audioPlayer setVolume:1.0f];
+            [self->audioPlayer start];
         }];
     }
 }
@@ -928,7 +950,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 - (NSInputStream *)resetInputStream{
     //iOS doesn't allow seeking for non file based streams.
     //So resetting the consumer stream to a new input stream.
-    if(currentState == AWSLexInteractionModeSpeech) {
+    if (self.currentState == AWSLexInteractionModeSpeech) {
         consumerStream = [[NSInputStream alloc] initWithData:producerAudioBuffer];
         return consumerStream;
     }else{
@@ -937,5 +959,150 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 }
 
 #pragma mark -
+
+@end
+
+#pragma mark - AWSLexAudioSession
+
+@interface AWSLexAudioSession ()
+
+@property (nonatomic) BOOL observingRouteChangeNotification;
+
+@end
+
+@implementation AWSLexAudioSession
+
++ (instancetype)sharedInstance {
+    static AWSLexAudioSession *shared;
+    static dispatch_once_t token;
+    dispatch_once(&token, ^{
+        shared = [AWSLexAudioSession new];
+    });
+    return shared;
+}
+
+- (void)setPlayAndRecordCategory:(NSError **)outError {
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:outError];
+}
+
+- (void)overrideOutputAudioPort:(NSError **)outError {
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    AVAudioSessionPortOverride portOverride = AVAudioSessionPortOverrideSpeaker;
+    
+    for (AVAudioSessionPortDescription *portDesc in session.currentRoute.outputs) {
+        // Use Headphone if detected.
+        if ([portDesc.portType isEqualToString:AVAudioSessionPortHeadphones]) {
+            portOverride = AVAudioSessionPortOverrideNone;
+            break;
+        }
+    }
+    [session overrideOutputAudioPort:portOverride error:outError];
+}
+
+- (void)requestRecordPermission:(PermissionBlock)response {
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    [session requestRecordPermission:response];
+}
+
+- (void)startObservingAudioSessionRouteChangeNotification {
+    @synchronized (self) {
+        if (!self.observingRouteChangeNotification) {
+            self.observingRouteChangeNotification = YES;
+            [[NSNotificationCenter defaultCenter] addObserver:self
+                                                     selector:@selector(routeDidChange:)
+                                                         name:AVAudioSessionRouteChangeNotification
+                                                       object:nil];
+        }
+    }
+}
+
+- (void)endObservingAudioSessionRouteChangeNotification {
+    @synchronized (self) {
+        if (self.observingRouteChangeNotification) {
+            [[NSNotificationCenter defaultCenter] removeObserver:self];
+            self.observingRouteChangeNotification = NO;
+        }
+    }
+}
+
+#pragma mark - AVAudioSessionRouteChangeNotification handler
+
+- (void)routeDidChange:(NSNotification *)not {
+    [self overrideOutputAudioPort:nil];
+}
+
+@end
+
+
+#pragma mark - AWSLexAudioPlayer
+
+
+@interface AWSLexAudioPlayer()<AVAudioPlayerDelegate>
+
+@property (nonatomic) AVAudioPlayer *audioPlayer;
+@property (nonatomic) NSData *audioData;
+
+@end
+
+@implementation AWSLexAudioPlayer
+
+- (void)dealloc {
+    self.audioPlayer.delegate = nil;
+}
+
+- (instancetype)initWithData:(NSData *)audioData
+{
+    self = [super init];
+    if (self) {
+        self.audioData = audioData;
+    }
+    return self;
+}
+
+- (void)start {
+    NSError *error = nil;
+    self.audioPlayer = [[AVAudioPlayer alloc] initWithData:self.audioData error:&error];
+    // Release the audioData ASAP.
+    self.audioData = nil;
+    
+    if (error) {
+        if (self.errorBlock) {
+            self.errorBlock(error);
+        }
+    } else {
+        self.audioPlayer.delegate = self;
+        [self.audioPlayer prepareToPlay];
+        if (self.preparedBlock) {
+            self.preparedBlock();
+        }
+        [self.audioPlayer play];
+        [self.audioPlayer setVolume:1.0f];
+    }
+}
+
+
+#pragma mark - AVAudioPlayerDelegate
+
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
+    if (flag) {
+        if (self.completionBlock) {
+            self.completionBlock();
+        }
+    } else {
+        AWSDDLogVerbose(@"audio player finished unsuccessfully", nil);
+        if (self.errorBlock) {
+            self.errorBlock([NSError errorWithDomain:AWSLexInteractionKitErrorDomain
+                                                code:AWSLexInteractionKitErrorCodeAudioStreaming
+                                            userInfo:nil]);
+        }
+    }
+}
+
+- (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError * __nullable)error {
+    if (self.errorBlock) {
+        self.errorBlock(error);
+    }
+}
 
 @end

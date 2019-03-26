@@ -21,6 +21,7 @@
 #import "AWSPinpointService.h"
 #import "AWSPinpointEvent.h"
 #import "AWSPinpointContext.h"
+#import "AWSPinpointConfiguration.h"
 
 static NSString *const AWSCampaignDeepLinkKey = @"deeplink";
 static NSString *const AWSAttributeApplicationStateKey = @"applicationState";
@@ -41,6 +42,10 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
 - (void) setCampaignAttributes:(NSDictionary*) campaign;
 @end
 
+@interface AWSPinpointConfiguration()
+@property (nonnull, strong) NSUserDefaults *userDefaults;
+@end
+
 @implementation AWSPinpointNotificationManager
 
 - (instancetype)init {
@@ -57,11 +62,20 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
 }
 
 + (BOOL)isNotificationEnabled {
-    BOOL optOut = ![[UIApplication sharedApplication] isRegisteredForRemoteNotifications];
-    if ([[UIApplication sharedApplication] currentUserNotificationSettings].types == UIUserNotificationTypeNone) {
-        optOut = YES;
+    __block BOOL notificationsEnabled;
+    [self runOnMainThread:^{
+        notificationsEnabled = [[UIApplication sharedApplication] isRegisteredForRemoteNotifications];
+    }];
+    
+    return notificationsEnabled;
+}
+
++ (void) runOnMainThread:(void (^)(void))codeBlock {
+    if ([NSThread isMainThread]) {
+        codeBlock();
+    } else {
+        dispatch_sync(dispatch_get_main_queue(), codeBlock);
     }
-    return !optOut;
 }
 
 + (BOOL)validCampaignPushForNotification:(NSDictionary*) notification {
@@ -93,14 +107,13 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
 }
 
 - (void)interceptDidRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
     //Check if device token has changed
-    NSData *currentToken = [userDefaults objectForKey:AWSDeviceTokenKey];
+    NSData *currentToken = [self.context.configuration.userDefaults objectForKey:AWSDeviceTokenKey];
     if (![currentToken isEqualToData:deviceToken]) {
-        [userDefaults setObject:deviceToken forKey:AWSDeviceTokenKey];
-        [userDefaults synchronize];
+        [self.context.configuration.userDefaults setObject:deviceToken forKey:AWSDeviceTokenKey];
+        [self.context.configuration.userDefaults synchronize];
         //Update endpoint
-        AWSLogInfo(@"Calling endpoint Service to register token");
+        AWSDDLogInfo(@"Calling endpoint Service to register token");
         
         [self.context.targetingClient updateEndpointProfile];
     }
@@ -108,7 +121,13 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
 
 - (void)interceptDidReceiveRemoteNotification:(NSDictionary *)userInfo
                        fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler {
-    [self handleNotificationReceived:[UIApplication sharedApplication] withNotification:userInfo];
+    [self interceptDidReceiveRemoteNotification:userInfo fetchCompletionHandler:handler shouldHandleNotificationDeepLink:YES];
+}
+
+- (void)interceptDidReceiveRemoteNotification:(NSDictionary *)userInfo
+                       fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler
+             shouldHandleNotificationDeepLink:(BOOL) handleDeepLink {
+    [self handleNotificationReceived:[UIApplication sharedApplication] withNotification:userInfo shouldHandleNotificationDeepLink:handleDeepLink];
     //We must rely on the user calling the completion handler because if we call it ourselves as well as the user it would cause a crash due to calling it twice.
 }
 
@@ -119,7 +138,7 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
     }
     NSDictionary *amaDict = userInfo[AWSDataKey][AWSPinpointKey];
     if ([amaDict[AWSCampaignDeepLinkKey] isKindOfClass:[NSString class]]) {
-        AWSLogVerbose(@"Received Deep Link: %@", amaDict[AWSCampaignDeepLinkKey]);
+        AWSDDLogVerbose(@"Received Deep Link: %@", amaDict[AWSCampaignDeepLinkKey]);
         NSURL *deepLinkURL = [NSURL URLWithString:amaDict[AWSCampaignDeepLinkKey]];
         if ([[UIApplication sharedApplication] canOpenURL:deepLinkURL]) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -130,24 +149,27 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
 }
 
 - (void)handleNotificationReceived:(UIApplication *) app
-                  withNotification:(NSDictionary *) userInfo {
+                  withNotification:(NSDictionary *) userInfo
+  shouldHandleNotificationDeepLink:(BOOL) shouldHandleNotificationDeepLink {
     UIApplicationState state = [app applicationState];
     
     if (state == UIApplicationStateInactive) {
-        AWSLogVerbose(@"App launched from received notification.");
+        AWSDDLogVerbose(@"App launched from received notification.");
         [self addGlobalCampaignMetadataForNotification:userInfo];
         [self recordMessageOpenedEventForNotification:userInfo
                                        withIdentifier:nil
                                  withApplicationState:state];
-        [self handleNotificationDeepLinkForNotification:userInfo];
+        if (shouldHandleNotificationDeepLink) {
+            [self handleNotificationDeepLinkForNotification:userInfo];
+        }
     } else if (state == UIApplicationStateBackground) {
-        AWSLogVerbose(@"Received notification with app on background.");
+        AWSDDLogVerbose(@"Received notification with app on background.");
         [self addGlobalCampaignMetadataForNotification:userInfo];
         [self recordMessageReceivedEventForNotification:userInfo
                                               eventType:AWSEventTypeReceivedBackground
                                    withApplicationState:state];
     } else {
-        AWSLogVerbose(@"Received notification with app on foreground.");
+        AWSDDLogVerbose(@"Received notification with app on foreground.");
         [self recordMessageReceivedEventForNotification:userInfo
                                               eventType:AWSEventTypeReceivedForeground
                                    withApplicationState:state];
@@ -191,7 +213,7 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
         return;
     }
     NSDictionary *campaign = userInfo[AWSDataKey][AWSPinpointKey][AWSPinpointCampaignKey];
-    AWSLogVerbose(@"Adding campaign attributes to event[%@]: %@",event.eventType, campaign);
+    AWSDDLogVerbose(@"Adding campaign attributes to event[%@]: %@",event.eventType, campaign);
     
     for (NSString *key in [campaign allKeys]) {
         [event addAttribute:campaign[key] forKey:key];
@@ -204,7 +226,7 @@ NSString *const AWSPinpointCampaignKey = @"campaign";
     }
     
     NSDictionary *campaign = userInfo[AWSDataKey][AWSPinpointKey][AWSPinpointCampaignKey];
-    AWSLogVerbose(@"Adding campaign global attributes: %@", campaign);
+    AWSDDLogVerbose(@"Adding campaign global attributes: %@", campaign);
     [self.context.analyticsClient setCampaignAttributes:campaign];
     
     for (NSString *key in [campaign allKeys]) {

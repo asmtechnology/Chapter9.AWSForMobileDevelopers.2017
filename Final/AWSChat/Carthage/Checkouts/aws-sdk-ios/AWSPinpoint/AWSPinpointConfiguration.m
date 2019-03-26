@@ -35,14 +35,21 @@ static NSString* const UNKNOWN = @"Unknown";
         NSString *bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
         NSString *bundleIdentifier = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIdentifier"];
         NSString *bundleDisplayName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
-        _appVersion = shortVersionString == nil ? UNKNOWN : shortVersionString;
-        _appBuild = bundleVersion == nil ? UNKNOWN : bundleVersion;
-        _appPackageName = bundleIdentifier == nil ? UNKNOWN : bundleIdentifier;
-        _appName = bundleDisplayName == nil ? UNKNOWN : bundleDisplayName;
+        _appVersion = shortVersionString ?: UNKNOWN;
+        _appBuild = bundleVersion ?: UNKNOWN;
+        _appPackageName = bundleIdentifier ?: UNKNOWN;
+        _appName = bundleDisplayName ?: UNKNOWN;
+        
+        AWSDDLogVerbose(@"App Version: [%@]; App Build: [%@]; App Package Name: [%@]; App Name: [%@]",
+                        _appVersion, _appBuild, _appPackageName, _appName);
     }
     return self;
 }
 
+@end
+
+@interface AWSPinpointConfiguration()
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
 @end
 
 @implementation AWSPinpointConfiguration
@@ -60,7 +67,7 @@ static NSString* const UNKNOWN = @"Unknown";
     }
     if (!serviceConfiguration) {
         @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                       reason:@"The Pinpoint Analytics service configuration is `nil`. You need to configure `Info.plist` or set `defaultServiceConfiguration` before using this method."
+                                       reason:@"The Pinpoint Analytics service configuration is `nil`. You need to configure `awsconfiguration.json` or `Info.plist` or set `defaultServiceConfiguration` before using this method."
                                      userInfo:nil];
     }
     return serviceConfiguration;
@@ -78,7 +85,7 @@ static NSString* const UNKNOWN = @"Unknown";
     }
     if (!serviceConfiguration) {
         @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                       reason:@"The Pinpoint Targeting service configuration is `nil`. You need to configure `Info.plist` or set `defaultServiceConfiguration` before using this method."
+                                       reason:@"The Pinpoint Targeting service configuration is `nil`. You need to configure `awsconfiguration.json` or `Info.plist` or set `defaultServiceConfiguration` before using this method."
                                      userInfo:nil];
     }
     return serviceConfiguration;
@@ -89,7 +96,7 @@ static NSString* const UNKNOWN = @"Unknown";
     NSString *appId = [serviceInfo.infoDictionary objectForKey:AWSInfoAppId];
     if (!appId) {
         @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                       reason:@"The Pinpoint AppId is `nil`. You need to configure it in `Info.plist` before using this method."
+                                       reason:@"The Pinpoint AppId is `nil`. You need to configure it in `awsconfiguration.json` or `Info.plist` before using this method."
                                      userInfo:nil];
     }
     return appId;
@@ -140,6 +147,8 @@ static NSString* const UNKNOWN = @"Unknown";
           serviceConfiguration:(AWSServiceConfiguration*) analyticsServiceConfiguration
  targetingServiceConfiguration:(AWSServiceConfiguration*) targetingServiceConfiguration {
     if (self = [super init]) {
+        _userDefaults = [NSUserDefaults standardUserDefaults];
+        _debug = NO;
         _appId = (appId)? appId : [AWSPinpointConfiguration appId];
         _launchOptions = launchOptions;
         _attributes = [NSDictionary dictionary];

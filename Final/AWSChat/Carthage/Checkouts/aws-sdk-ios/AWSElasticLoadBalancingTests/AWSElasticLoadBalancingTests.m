@@ -93,6 +93,9 @@
     [[[elb configureHealthCheck:healthCheckInput] continueWithBlock:^id(AWSTask *task) {
         
         XCTAssertNotNil(task.error, @"expected Validation Error, but got nil");
+        XCTAssertEqual(task.error.code, 0);
+        XCTAssertTrue([@"ValidationError" isEqualToString:task.error.userInfo[@"Code"]]);
+        XCTAssertTrue([@"1 validation error detected: Value null at 'healthCheck' failed to satisfy constraint: Member must not be null" isEqualToString:task.error.userInfo[@"Message"]]);
         return nil;
     }] waitUntilFinished];
 }

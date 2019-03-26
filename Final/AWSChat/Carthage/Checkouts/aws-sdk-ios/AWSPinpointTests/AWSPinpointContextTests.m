@@ -31,16 +31,23 @@ static NSString *const AWSMobileAnalyticsRoot = @"com.amazonaws.MobileAnalytics"
 
 @interface AWSPinpointContextTests : XCTestCase
 @property (nonatomic, strong) AWSPinpointConfiguration *configuration;
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
 
+@end
+
+@interface AWSPinpointConfiguration()
+@property (nonnull, strong) NSUserDefaults *userDefaults;
 @end
 
 @implementation AWSPinpointContextTests
 
 - (void)setUp {
     [super setUp];
-    [[AWSLogger defaultLogger] setLogLevel:AWSLogLevelVerbose];
+    [[NSUserDefaults standardUserDefaults] removeSuiteNamed:@"AWSPinpointContextTests"];
+    self.userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"AWSPinpointContextTests"];
 
     self.configuration = [[AWSPinpointConfiguration alloc] initWithAppId:@"AWSPinpointContextTests" launchOptions:nil];
+    self.configuration.userDefaults = self.userDefaults;
     AWSUICKeyChainStore *keychain = [AWSUICKeyChainStore keyChainStoreWithService:AWSPinpointContextKeychainService];
     [keychain removeAllItems];
 }
@@ -52,18 +59,22 @@ static NSString *const AWSMobileAnalyticsRoot = @"com.amazonaws.MobileAnalytics"
 
 - (void)testConstructor {
     AWSPinpointContext *context = [AWSPinpointContext contextWithConfiguration:self.configuration];
+    
     XCTAssertNotNil(context);
     XCTAssertNotNil(context.clientContext);
+    XCTAssertNotNil(context.configuration.userDefaults);
     XCTAssertNotNil(context.uniqueId);
     XCTAssertNotNil(context.configuration);
     XCTAssertEqual(context.configuration, self.configuration);
     XCTAssertNil(context.analyticsService);
     XCTAssertNil(context.targetingService);
-    
+    XCTAssertTrue([context.configuration.userDefaults isEqual:self.userDefaults]);
     XCTAssertTrue([[context retrieveUniqueId] isEqualToString:context.uniqueId]);
 }
 
 - (void)testUniqueIdGeneration {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Test finished running."];
+
     AWSPinpointContext *context = [AWSPinpointContext contextWithConfiguration:self.configuration];
     XCTAssertNotNil(context);
     XCTAssertNotNil(context.clientContext);
@@ -87,25 +98,22 @@ static NSString *const AWSMobileAnalyticsRoot = @"com.amazonaws.MobileAnalytics"
     //UniqueId should Match
     XCTAssertTrue([secondContext.uniqueId isEqualToString:context.uniqueId]);
     
-    //Remove uniqueId, new context should have new Id
-    AWSUICKeyChainStore *keychain = [AWSUICKeyChainStore keyChainStoreWithService:AWSPinpointContextKeychainService];
-    [keychain removeAllItems];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        //Remove from keychain as tests currently dont support the keychain
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:AWSPinpointContextKeychainUniqueIdKey];
-        [[NSUserDefaults standardUserDefaults] synchronize];
-        XCTAssertNil([[NSUserDefaults standardUserDefaults] stringForKey:AWSPinpointContextKeychainUniqueIdKey]);
-        
-        AWSPinpointContext *thirdContext = [AWSPinpointContext contextWithConfiguration:self.configuration];
-        XCTAssertNotNil(thirdContext);
-        XCTAssertNotNil(thirdContext.clientContext);
-        XCTAssertNotNil(thirdContext.uniqueId);
-        XCTAssertNotNil(thirdContext.configuration);
-        XCTAssertEqual(thirdContext.configuration, self.configuration);
-        XCTAssertNil(thirdContext.analyticsService);
-        XCTAssertNil(thirdContext.targetingService);
-        XCTAssertFalse([thirdContext.uniqueId isEqualToString:context.uniqueId]);
-    });
+    //New context should have new Id with new default suite
+    self.configuration.userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"testUniqueIdGeneration"];
+    AWSPinpointContext *thirdContext = [AWSPinpointContext contextWithConfiguration:self.configuration];
+    XCTAssertNotNil(thirdContext);
+    XCTAssertNotNil(thirdContext.clientContext);
+    XCTAssertNotNil(thirdContext.uniqueId);
+    XCTAssertNotNil(thirdContext.configuration);
+    XCTAssertEqual(thirdContext.configuration, self.configuration);
+    XCTAssertNil(thirdContext.analyticsService);
+    XCTAssertNil(thirdContext.targetingService);
+    XCTAssertFalse([thirdContext.uniqueId isEqualToString:context.uniqueId]);
+        [expectation fulfill];
+    
+    [self waitForExpectationsWithTimeout:5 handler:^(NSError * _Nullable error) {
+        XCTAssertNil(error);
+    }];
 }
 
 - (void)testUniqueIdLegacyMerge {
@@ -153,7 +161,7 @@ static NSString *const AWSMobileAnalyticsRoot = @"com.amazonaws.MobileAnalytics"
     if ([keychain stringForKey:AWSPinpointContextKeychainUniqueIdKey]) {
         XCTAssertTrue([[keychain stringForKey:AWSPinpointContextKeychainUniqueIdKey] isEqualToString:context.uniqueId]);
     } else { //Check user defaults
-        XCTAssertTrue([[[NSUserDefaults standardUserDefaults] stringForKey:AWSPinpointContextKeychainUniqueIdKey] isEqualToString:context.uniqueId]);
+        XCTAssertTrue([[self.userDefaults stringForKey:AWSPinpointContextKeychainUniqueIdKey] isEqualToString:context.uniqueId]);
     }
     
     //Check if file got deleted
@@ -178,7 +186,7 @@ static NSString *const AWSMobileAnalyticsRoot = @"com.amazonaws.MobileAnalytics"
     XCTAssertEqual(context.configuration, self.configuration);
     XCTAssertNil(context.analyticsService);
     XCTAssertNil(context.targetingService);
-    XCTAssertTrue([context.uniqueId isEqualToString:[[NSUserDefaults standardUserDefaults] stringForKey:AWSPinpointContextKeychainUniqueIdKey]]);
+    XCTAssertTrue([context.uniqueId isEqualToString:[self.userDefaults stringForKey:AWSPinpointContextKeychainUniqueIdKey]]);
 }
 
 @end

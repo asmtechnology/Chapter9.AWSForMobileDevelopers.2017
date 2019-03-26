@@ -15,6 +15,7 @@
 
 
 #import <Foundation/Foundation.h>
+#import <AVFoundation/AVFoundation.h>
 #import <AWSCore/AWSCore.h>
 #import "AWSLexModel.h"
 #import "AWSLexService.h"
@@ -428,52 +429,47 @@ typedef NS_ENUM(NSInteger, AWSLexSpeechEncoding) {
 /**
  Name of the intent being ellicited.
  */
-@property (nonatomic, strong) NSString * _Nullable intent;
+@property (nonatomic, strong, readonly) NSString * _Nullable intent;
 
 /**
  Text response.
  */
-@property (nonatomic, strong) NSString * _Nullable outputText;
+@property (nonatomic, strong, readonly) NSString * _Nullable outputText;
 
 /**
  The slots which are currently filled in an ongoing dialog
  */
-@property (nonatomic, strong) NSDictionary * _Nullable slots;
+@property (nonatomic, strong, readonly) NSDictionary * _Nullable slots;
 
 /**
  The slot which is being ellicited for an intent.
  */
-@property (nonatomic, strong) NSString * _Nullable elicitSlot;
+@property (nonatomic, strong, readonly) NSString * _Nullable elicitSlot;
 
 /**
  The current dialog state.
  */
-@property (nonatomic, assign) AWSLexDialogState dialogState;
+@property (nonatomic, assign, readonly) AWSLexDialogState dialogState;
 
 /**
  The session attributes returned from the service.
  */
-@property (nonatomic, strong) NSDictionary * _Nullable sessionAttributes;
+@property (nonatomic, strong, readonly) NSDictionary * _Nullable sessionAttributes;
 
 /**
  The audio stream . This may be null incase of a text response.
  */
-@property (nonatomic, strong) NSData * _Nullable audioStream;
+@property (nonatomic, strong, readonly) NSData * _Nullable audioStream;
 
 /**
  The format for the audio stream. This may be null if the audion stream is null.
  */
-@property (nonatomic, strong) NSString * _Nullable audioContentType;
+@property (nonatomic, strong, readonly) NSString * _Nullable audioContentType;
 
-
-- (instancetype) initWithOutputText:(NSString *)outputText
-                             intent:(NSString * _Nullable)intent
-                  sessionAttributes:(NSDictionary * _Nullable)sessionAttributes
-                       slotToElicit:(NSString * _Nullable)elicitSlot
-                              slots:(NSDictionary * _Nullable)slots
-                        dialogState:(AWSLexDialogState)dialogState
-                        audioStream:(NSData * _Nullable)audioStream
-                   audioContentType:(NSString * _Nullable)audioContentType;
+/**
+ Transcript of the voice input to the operation.
+ */
+@property (nonatomic, strong, readonly) NSString * _Nullable inputTranscript;
 
 
 @end
@@ -492,6 +488,82 @@ typedef NS_ENUM(NSInteger, AWSLexSpeechEncoding) {
  The session attributes.
  */
 @property (nonatomic, strong) NSDictionary * _Nullable sessionAttributes;
+
+@end
+
+#pragma mark - AVAudioSession
+
+/**
+ Wrapper to AVAudioSession class.
+ It auto-detects output source(Internal speaker or microphone) at runtime by listening to
+ AVAudioSessionRouteChangeNotification.
+ */
+@interface AWSLexAudioSession : NSObject
+
++ (instancetype)sharedInstance;
+
+/**
+ Set AVAudioSession category to AVAudioSessionCategoryPlayAndRecord
+ */
+- (void)setPlayAndRecordCategory:(NSError **)outError;
+
+/**
+ Override output audio port to AVAudioSessionPortOverrideSpeaker if headset is not detected.
+ */
+- (void)overrideOutputAudioPort:(NSError **)outError;
+
+
+/**
+ Request record permission to AVAudioSession.
+ */
+- (void)requestRecordPermission:(PermissionBlock)response;
+
+/**
+ Start observing for AVAudioSessionRouteChangeNotification if not already started.
+ */
+- (void)startObservingAudioSessionRouteChangeNotification;
+
+/**
+ Remove observing for AVAudioSessionRouteChangeNotification.
+ */
+- (void)endObservingAudioSessionRouteChangeNotification;
+
+@end
+
+
+#pragma mark - AWSLexAudioPlayer
+
+
+/**
+ Wrapper to AVAudioPLayer class.
+ */
+@interface AWSLexAudioPlayer : NSObject
+
+/**
+ Set it to handle error.
+ */
+@property (nonatomic) void (^errorBlock)(NSError *error);
+
+/**
+ Set it to handle successful audio play.
+ */
+@property (nonatomic) void (^completionBlock)(void);
+
+/**
+ Set it to handle when audio has been prepared to play.
+ */
+@property (nonatomic) void (^preparedBlock)(void);
+
+- (instancetype)initWithData:(NSData *)audioData;
+
+/**
+ Start playing sound.
+ 
+ When audio is prepared to play, preparedBlock will get called if it is set.
+ Once audio is successfully played audio, completionBlock will get called if it is set.
+ Otherwise errorBlock is get called.
+ */
+- (void)start;
 
 @end
 

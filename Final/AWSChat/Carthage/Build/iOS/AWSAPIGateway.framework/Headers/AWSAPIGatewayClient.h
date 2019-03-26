@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2010-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+//! SDK version for AWSAPIGateway
+FOUNDATION_EXPORT NSString *const AWSAPIGatewaySDKVersion;
+
 FOUNDATION_EXPORT NSString *const AWSAPIGatewayErrorDomain;
 
 FOUNDATION_EXPORT NSString *const AWSAPIGatewayErrorHTTPBodyKey;
@@ -34,7 +37,7 @@ typedef NS_ENUM(NSInteger, AWSAPIGatewayErrorType) {
 
 @interface AWSAPIGatewayClient : NSObject
 
-@property (nonatomic, strong, readonly) AWSServiceConfiguration *configuration;
+@property (nonatomic, strong) AWSServiceConfiguration *configuration;
 
 @property (nonatomic, strong, nullable) NSString *APIKey;
 

@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
 #import "AWSPollyResources.h"
 
 static NSString *const AWSInfoPolly = @"Polly";
-static NSString *const AWSPollySDKVersion = @"2.5.1";
+NSString *const AWSPollySDKVersion = @"2.9.3";
 
 
 @interface AWSPollyResponseSerializer : AWSJSONResponseSerializer
@@ -42,13 +42,21 @@ static NSDictionary *errorCodeDictionary = nil;
     errorCodeDictionary = @{
                             @"InvalidLexiconException" : @(AWSPollyErrorInvalidLexicon),
                             @"InvalidNextTokenException" : @(AWSPollyErrorInvalidNextToken),
+                            @"InvalidS3BucketException" : @(AWSPollyErrorInvalidS3Bucket),
+                            @"InvalidS3KeyException" : @(AWSPollyErrorInvalidS3Key),
                             @"InvalidSampleRateException" : @(AWSPollyErrorInvalidSampleRate),
+                            @"InvalidSnsTopicArnException" : @(AWSPollyErrorInvalidSnsTopicArn),
                             @"InvalidSsmlException" : @(AWSPollyErrorInvalidSsml),
+                            @"InvalidTaskIdException" : @(AWSPollyErrorInvalidTaskId),
+                            @"LanguageNotSupportedException" : @(AWSPollyErrorLanguageNotSupported),
                             @"LexiconNotFoundException" : @(AWSPollyErrorLexiconNotFound),
                             @"LexiconSizeExceededException" : @(AWSPollyErrorLexiconSizeExceeded),
+                            @"MarksNotSupportedForFormatException" : @(AWSPollyErrorMarksNotSupportedForFormat),
                             @"MaxLexemeLengthExceededException" : @(AWSPollyErrorMaxLexemeLengthExceeded),
                             @"MaxLexiconsNumberExceededException" : @(AWSPollyErrorMaxLexiconsNumberExceeded),
                             @"ServiceFailureException" : @(AWSPollyErrorServiceFailure),
+                            @"SsmlMarksNotSupportedForTextTypeException" : @(AWSPollyErrorSsmlMarksNotSupportedForTextType),
+                            @"SynthesisTaskNotFoundException" : @(AWSPollyErrorSynthesisTaskNotFound),
                             @"TextLengthExceededException" : @(AWSPollyErrorTextLengthExceeded),
                             @"UnsupportedPlsAlphabetException" : @(AWSPollyErrorUnsupportedPlsAlphabet),
                             @"UnsupportedPlsLanguageException" : @(AWSPollyErrorUnsupportedPlsLanguage),
@@ -105,7 +113,8 @@ static NSDictionary *errorCodeDictionary = nil;
                                                        error:error];
         }
     }
-	    return responseObject;
+	
+    return responseObject;
 }
 
 @end
@@ -176,7 +185,7 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
 
         if (!serviceConfiguration) {
             @throw [NSException exceptionWithName:NSInternalInconsistencyException
-                                           reason:@"The service configuration is `nil`. You need to configure `Info.plist` or set `defaultServiceConfiguration` before using this method."
+                                           reason:@"The service configuration is `nil`. You need to configure `awsconfiguration.json`, `Info.plist` or set `defaultServiceConfiguration` before using this method."
                                          userInfo:nil];
         }
         _defaultPolly = [[AWSPolly alloc] initWithConfiguration:serviceConfiguration];
@@ -356,6 +365,29 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
     }];
 }
 
+- (AWSTask<AWSPollyGetSpeechSynthesisTaskOutput *> *)getSpeechSynthesisTask:(AWSPollyGetSpeechSynthesisTaskInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodGET
+                     URLString:@"/v1/synthesisTasks/{TaskId}"
+                  targetPrefix:@""
+                 operationName:@"GetSpeechSynthesisTask"
+                   outputClass:[AWSPollyGetSpeechSynthesisTaskOutput class]];
+}
+
+- (void)getSpeechSynthesisTask:(AWSPollyGetSpeechSynthesisTaskInput *)request
+     completionHandler:(void (^)(AWSPollyGetSpeechSynthesisTaskOutput *response, NSError *error))completionHandler {
+    [[self getSpeechSynthesisTask:request] continueWithBlock:^id _Nullable(AWSTask<AWSPollyGetSpeechSynthesisTaskOutput *> * _Nonnull task) {
+        AWSPollyGetSpeechSynthesisTaskOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
 - (AWSTask<AWSPollyListLexiconsOutput *> *)listLexicons:(AWSPollyListLexiconsInput *)request {
     return [self invokeRequest:request
                     HTTPMethod:AWSHTTPMethodGET
@@ -379,6 +411,29 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
     }];
 }
 
+- (AWSTask<AWSPollyListSpeechSynthesisTasksOutput *> *)listSpeechSynthesisTasks:(AWSPollyListSpeechSynthesisTasksInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodGET
+                     URLString:@"/v1/synthesisTasks"
+                  targetPrefix:@""
+                 operationName:@"ListSpeechSynthesisTasks"
+                   outputClass:[AWSPollyListSpeechSynthesisTasksOutput class]];
+}
+
+- (void)listSpeechSynthesisTasks:(AWSPollyListSpeechSynthesisTasksInput *)request
+     completionHandler:(void (^)(AWSPollyListSpeechSynthesisTasksOutput *response, NSError *error))completionHandler {
+    [[self listSpeechSynthesisTasks:request] continueWithBlock:^id _Nullable(AWSTask<AWSPollyListSpeechSynthesisTasksOutput *> * _Nonnull task) {
+        AWSPollyListSpeechSynthesisTasksOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
 - (AWSTask<AWSPollyPutLexiconOutput *> *)putLexicon:(AWSPollyPutLexiconInput *)request {
     return [self invokeRequest:request
                     HTTPMethod:AWSHTTPMethodPUT
@@ -392,6 +447,29 @@ static AWSSynchronizedMutableDictionary *_serviceClients = nil;
      completionHandler:(void (^)(AWSPollyPutLexiconOutput *response, NSError *error))completionHandler {
     [[self putLexicon:request] continueWithBlock:^id _Nullable(AWSTask<AWSPollyPutLexiconOutput *> * _Nonnull task) {
         AWSPollyPutLexiconOutput *result = task.result;
+        NSError *error = task.error;
+
+        if (completionHandler) {
+            completionHandler(result, error);
+        }
+
+        return nil;
+    }];
+}
+
+- (AWSTask<AWSPollyStartSpeechSynthesisTaskOutput *> *)startSpeechSynthesisTask:(AWSPollyStartSpeechSynthesisTaskInput *)request {
+    return [self invokeRequest:request
+                    HTTPMethod:AWSHTTPMethodPOST
+                     URLString:@"/v1/synthesisTasks"
+                  targetPrefix:@""
+                 operationName:@"StartSpeechSynthesisTask"
+                   outputClass:[AWSPollyStartSpeechSynthesisTaskOutput class]];
+}
+
+- (void)startSpeechSynthesisTask:(AWSPollyStartSpeechSynthesisTaskInput *)request
+     completionHandler:(void (^)(AWSPollyStartSpeechSynthesisTaskOutput *response, NSError *error))completionHandler {
+    [[self startSpeechSynthesisTask:request] continueWithBlock:^id _Nullable(AWSTask<AWSPollyStartSpeechSynthesisTaskOutput *> * _Nonnull task) {
+        AWSPollyStartSpeechSynthesisTaskOutput *result = task.result;
         NSError *error = task.error;
 
         if (completionHandler) {
